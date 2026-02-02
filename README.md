@@ -6,7 +6,9 @@ X-CHANGE LIFE (XCL) COMPLETE MODDING GUIDE
 Last Updated: February 2025
 Game Version: X-Lowe
 Repository: https://gitgud.io/xchange-life/xcl-twee-xlowe
+
 Official Wiki: https://x-change.life/wiki/
+
 Official DISCORD: https://discord.gg/B2g2YYFn2N
 
 ==============================================
@@ -852,4 +854,5 @@ Official Discord: https://discord.gg/B2g2YYFn2N
 Happy modding!
 
 END OF GUIDE
+
 ==============================================
