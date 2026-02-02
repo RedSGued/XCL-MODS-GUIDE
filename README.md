@@ -7,6 +7,7 @@ Last Updated: February 2024
 Game Version: X-Lowe
 Repository: https://gitgud.io/xchange-life/xcl-twee-xlowe
 Official Wiki: https://x-change.life/wiki/
+Official DISCORD: https://discord.gg/B2g2YYFn2N
 
 ==============================================
 TABLE OF CONTENTS
