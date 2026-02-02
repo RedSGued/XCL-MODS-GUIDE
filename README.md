@@ -5,11 +5,8 @@ X-CHANGE LIFE (XCL) COMPLETE MODDING GUIDE
 
 Last Updated: February 2025
 Game Version: X-Lowe
-
 Repository: https://gitgud.io/xchange-life/xcl-twee-xlowe
-
 Official Wiki: https://x-change.life/wiki/
-
 Official DISCORD: https://discord.gg/B2g2YYFn2N
 
 ==============================================
@@ -45,816 +42,1213 @@ TABLE OF CONTENTS
 1. NAVIGATION MACROS
 ==============================================
 
-**(cs:)** - Change-screen navigation. Sets $next and replaces the center screen.
-**Signatures:** `(cs: target, modeOrStage?)`
-**Examples:** `(cs:"scene 04 page 2")`, `(cs:"Go to the bar","next")`
+**(cs:)**  
+*Change-screen navigation. Sets $next and replaces the center screen (or full screen / goto depending on tags/flags). Accepts a passage name, code hook, or a stage number.*  
+**Signatures:**  
+`(cs: target: string | PassageName | codehook, modeOrStage?: string | number)`  
+`(cs: stage: number)`  
+`(cs:)`  
+**Examples:**  
+`(cs:"scene 04 page 2")`  
+`(cs:"Go to the bar","next")`  
+`(cs:"quick refresh","nostop")`  
+`(cs:2)`  
+`(cs:)`  
+**Notes:**  
+If the target passage has the [fullscreen] tag, cs behaves like "next". If it has the [goto] tag, cs behaves like (goto:).
 
-**(gt:)** - XCL wrapper for (goto:). Performs transition cleanup.
-**Signatures:** `(gt: passage)`
-**Examples:** `(gt:"day")`
+**(gt:)**  
+*XCL wrapper for (goto:). Sets $next, performs transition cleanup (stop sounds/tooltips), then navigates immediately.*  
+**Signatures:**  
+`(gt: passage: string | PassageName)`  
+**Examples:**  
+`(gt:"day")`  
+`(gt:"title screen")`
 
-**(screen:)** - Builds XCL three-panel layout.
-**Signatures:** `(screen: right, center)`
-**Examples:** `(screen:"character status","day")`
+**(screen:)**  
+*Builds or updates the XCL three-panel layout, rendering the right sidebar and center screen (passage names or code hooks).*  
+**Signatures:**  
+`(screen: right: string | PassageName | codehook, center: string | PassageName | codehook)`  
+**Examples:**  
+`(screen:"character status","day")`  
+`(screen:"character status",[(print:"Hello")])`
 
-**($cs:)** - Convenience wrapper for (cs:).
-**($nx:)** - Fullscreen navigation wrapper.
-**($screen:)** - Deprecated, use (screen:) directly.
-**($smart_screen:)** - Smart layout builder.
+**($cs:)**  
+*Convenience wrapper for (cs:).*  
+**Signatures:**  
+`($cs: passage: string | PassageName)`  
+**Examples:**  
+`($cs:"scene 04 page 2")`  
+`($cs:"npc screen update location")`
+
+**($nx:)**  
+*Convenience wrapper for (cs: passage, "next"). Replaces the entire screen (fullscreen flow).*  
+**Signatures:**  
+`($nx: passage: string | PassageName)`  
+**Examples:**  
+`($nx:"Go to the bar")`  
+`($nx:"Workout")`
+
+**($screen:)**  
+*Deprecated wrapper for (screen:). Prefer (screen:) directly.*  
+**Signatures:**  
+`($screen: rightSidebarPassage: string | PassageName, centerContent: codehook)`  
+**Examples:**  
+`($screen:"character status",[(display:"day")])`  
+**Notes:**  
+The game may show a deprecation warning when you use this.
 
 ==============================================
 2. CHOICE SYSTEMS
 ==============================================
 
-**(simple_option:)** - Creates choice links with flags.
-**Signatures:** `(simple_option: target, ...args)`
-**Examples:** `(simple_option:"buy flowers","display","Daisies","Roses","Lilies")`
+**(simple_option:)**  
+*Creates one or more choice links that set $choice and then navigate/render using cs/display/gt. Supports flags like "next", "display", "goto", and "nostop".*  
+**Signatures:**  
+`(simple_option: target: string | PassageName | codehook, ...args: string | boolean)`  
+**Examples:**  
+`(simple_option:"stepsis mall surprise 2","Call out her name.")`  
+`(simple_option:"advance time","Summer City moments.™")`  
+`(simple_option:"buy flowers","display","Daisies","Roses","Lilies")`  
+`(simple_option:"day","goto","Continue")`  
+`(simple_option:"refresh","nostop","Refresh")`
 
-**(multi_option:)** - Renders multiple option groups.
-**Signatures:** `(multi_option: ...options)`
-**Examples:** `(multi_option:(a:"buy flowers","Daisies","Roses"), (a:"day","goto","Leave"))`
+**(multi_option:)**  
+*Renders multiple option groups at once. Each option is an array like (a: target, [flags...], label1, label2, ...).*  
+**Signatures:**  
+`(multi_option: ...options: array)`  
+**Examples:**  
+`(multi_option:(a:"buy flowers","Daisies","Roses"), (a:"day","goto","Leave"))`  
+`(multi_option:(a:"refresh","nostop","Refresh"), (a:[(print:"(set:$x to 1)")],"Run code"))`  
+**Notes:**  
+If an option includes false, it is treated as hidden and returns an empty string for that option.
 
-**($simple_option:)** - Alias of simple_option.
-**($multi_option:)** - Wrapper for multi_option.
-**($parse_option:)** - Low-level option builder.
+**($simple_option:)**  
+*Alias/wrapper of (simple_option:). First arg is a passage target; remaining args are labels and optional flags.*  
+**Signatures:**  
+`($simple_option: target: string | PassageName | codehook, ...args: string | boolean)`  
+**Examples:**  
+`($simple_option:"stepsis mall surprise 2","Call out her name.")`  
+`($simple_option:"advance time","Summer City moments.™")`  
+`($simple_option:"buy flowers","display","Daisies","Roses","Lilies")`  
+**Notes:**  
+In XCL this is often provided as a $-prefixed macro for convenience; behavior matches (simple_option:).
 
-**Flags:** "display", "goto", "next", "nostop", false
+**($multi_option:)**  
+*Wrapper of (multi_option:). Pass multiple option arrays to render multiple groups of links.*  
+**Signatures:**  
+`($multi_option: ...options: array)`  
+**Examples:**  
+`($multi_option:(a:"buy flowers","Daisies","Roses"), (a:"day","goto","Leave"))`  
+**Notes:**  
+If your build includes the older $multi_option wrapper, it should behave the same as (multi_option:).
+
+**($parse_option:)**  
+*Low-level option builder: returns the raw link markup for each label (no outer wrapper). Sets $choice on click.*  
+**Signatures:**  
+`($parse_option: target: string | PassageName, ...args: string)`  
+**Examples:**  
+`($parse_option:"buy flowers","Daisies","Roses","Lilies")`  
+`($parse_option:"buy flowers","display","Daisies","Roses")`  
+`($parse_option:"advance time","next","Continue")`
 
 ==============================================
 3. CHARACTER & NPC SYSTEMS
 ==============================================
 
-**Character Status Macros:**
-- `(is_fem:)` - Returns true if female
-- `(is_male:)` - Returns true if male
-- `(is_preg:)` - Returns true if pregnant
-- `(knows_preg:)` - Returns true if pregnancy known
-- `(is_bim:)` - Returns true if "bimbo" effect
-- `(is_pp:)` - Returns true if "people pleaser" effect
-- `(pill: "name")` - Checks specific pill
+**(is_fem:)**  
+*Returns true if the current character's gender is female.*  
+**Signatures:**  
+`(is_fem:)`  
+**Examples:**  
+`(if:(is_fem:))[...]`
 
-**NPC Handling:**
-- `($show_base_npc: "npc_id")` - Load NPC into UI
-- `($char_passage:)` - Character-specific content
-- `($bargirl_passage:)` - NPC-specific content
-- `($passage_tags: "tag")` - Mod injection points
+**(is_male:)**  
+*Returns true if the current character's gender is male.*  
+**Signatures:**  
+`(is_male:)`  
+**Examples:**  
+`(if:(is_male:))[...]`
 
-**Wardrobe:**
-- `(outfitdb: "character", outfit_ids)` - Get outfits
-- `(getoutfit: "outfit_key")` - Get outfit details
+**(is_preg:)**  
+*Returns true if the current character is pregnant.*  
+**Signatures:**  
+`(is_preg:)`  
+**Examples:**  
+`(if:(is_preg:))[...]`
+
+**(knows_preg:)**  
+*Returns true if the character's pregnancy is known.*  
+**Signatures:**  
+`(knows_preg:)`  
+**Examples:**  
+`(if:(knows_preg:))[...]`
+
+**(is_bim:)**  
+*Returns true if the character has the "bimbo" side effect.*  
+**Signatures:**  
+`(is_bim:)`  
+**Examples:**  
+`(if:(is_bim:))[...]`
+
+**(is_pp:)**  
+*Returns true if the character has the "people pleaser" side effect.*  
+**Signatures:**  
+`(is_pp:)`  
+**Examples:**  
+`(if:(is_pp:))[...]`
+
+**(pill:)**  
+*Returns true if $pill_taken matches the provided pill name (case-insensitive).*  
+**Signatures:**  
+`(pill: pillName: string)`  
+**Examples:**  
+`(set:$pill_taken to "Cum-Cure")(if:(pill:"cum-cure"))[You took Cum-Cure.]`
+
+**($core_female_status:)**  
+*Returns a string describing the core female status used by UI (e.g. "bimbo" or "female"), based on character state and known pill effects.*  
+**Signatures:**  
+`($core_female_status:)`  
+**Examples:**  
+`(set:_status to ($core_female_status:))`  
+`(if: _status is "bimbo")[...]`
+
+**($show_base_npc:)**  
+*Convenience helper to load a base NPC into $npc / $npc_select and refresh the NPC UI (useful for mods/debug).*  
+**Signatures:**  
+`($show_base_npc: npcId: string)`  
+**Examples:**  
+`($show_base_npc:"stepsis")`  
+`($show_base_npc:"alexia")`
+
+**(outfitdb:)**  
+*Retrieves a list of outfits for a specified character, optionally filtered by outfit IDs.*  
+**Signatures:**  
+`(outfitdb: characterId: string, outfitIds?: array)`  
+**Examples:**  
+`(set:$outfits to (outfitdb:"alexia"))`  
+`(set:$filtered to (outfitdb:"alexia",(a:"outfit1","outfit2")))`
+
+**(getoutfit:)**  
+*Retrieves details of a specific outfit by its outfit key/id.*  
+**Signatures:**  
+`(getoutfit: outfitKey: string)`  
+**Examples:**  
+`(set:$outfit to (getoutfit:"alexia casual sundress"))`  
+`(print:$outfit's "name")`
 
 ==============================================
 4. MEMORY SYSTEM
 ==============================================
 
-**Memory Structure:**
-```javascript
-{
-  id: "unique_id",
-  day: current_day,
-  time: current_time,
-  strength: days_until_expire,
-  npc: "npc_id",
-  media: "path/to/media",
-  tags: ["tag1", "tag2"],
-  location: "activity_location"
-}
-Core Memory Macros:
+**(remember:)**  
+*Registers or updates a memory entry in $memories (id/day/time/strength/tags/npc/media/location). Auto-adds arousal & alcohol tags, and sets $location based on $current_activity.*  
+**Signatures:**  
+`(remember: id: string, strength: number, npc: string, media: string, ...tags: string)`  
+**Examples:**  
+`(remember:"stepsis shoplifting",14,"stepsis","none","didnt yell at her","caught shoplifting")`  
+`(remember:"cum facial",8,"none","none","dream","dream facial choice")`  
+**Notes:**  
+If the final argument is a datamap, render-related keys are stored as the memory's "media_render" field.
 
-(remember: id, strength, npc, media, tags...) - Create memory
+**(recall:)**  
+*Loads a memory by id into $memory and returns true/false. Optional tag checks can require (or forbid) certain tags.*  
+**Signatures:**  
+`(recall: id: string, tagOrMode?: string, ...tags?: string)`  
+**Examples:**  
+`(if:(recall:"stepsis shoplifting"))[(print:$memory's tags)]`  
+`(if:(recall:"cum facial","dream"))[(goto:(last of $memory's tags))]`  
+**Notes:**  
+On failure, $memory is set to "none".
 
-(remember_update: operation, id, args...) - Update memory
+**(forget:)**  
+*Deletes memories. With no args, prunes expired memories based on $day and each memory's strength. With an id, removes that memory; optional "remove dream" also removes the dream passage from $overnight_messages.*  
+**Signatures:**  
+`(forget:)`  
+`(forget: id: string, mode?: string)`  
+**Examples:**  
+`(forget:)`  
+`(forget:"stepsis shoplifting")`  
+`(forget:"cum facial","remove dream")`  
+**Notes:**  
+Memories with strength -1 never expire.
 
-(recall: id, tag_checks...) - Recall memory
+**(days_since:)**  
+*Returns number of days since the memory with the given id was recorded. Returns -1 if missing.*  
+**Signatures:**  
+`(days_since: id: string)`  
+**Examples:**  
+`(set:_age to (days_since:"stepsis shoplifting"))`  
+`(if:_age > 7)[You barely remember the details.]`
 
-(forget: id) or (forget:) - Delete/prune memories
+**(memory_time:)**  
+*Returns a natural-language time phrase for a memory (e.g. "yesterday", "last week"), based on $day/$time vs memory's day/time. Uses (twirl:) for variation.*  
+**Signatures:**  
+`(memory_time: memory: datamap | map | Map)`  
+**Examples:**  
+`(set:$m to (twirl:...(find:_memory where _memory's npc is "stepsis")))`  
+`(unless:$m is 0)[(print:(memory_time:$m))]`
 
-(memory_time: memory) - Natural language time
+**(remember_update:)**  
+*Updates an existing memory's tags or media. Supports operations: "add", "remove", and "add media".*  
+**Signatures:**  
+`(remember_update: operation: string, id: string, ...args: string | datamap | map | Map)`  
+**Examples:**  
+`(remember_update:"add","stepsis shoplifting","took her place","took pill in office")`  
+`(remember_update:"add media","stepsis shoplifting","path/to/new.jpg",(dm:"type","pic","format","right"))`  
+**Notes:**  
+If the memory does not include the tag "non-unique", tags are automatically de-duplicated.
 
-(days_since: "id") - Days since creation
+**(show_memory:)**  
+*Renders the media for a memory (image/video) using the memory's stored "media_render" options; optional override options can be merged in.*  
+**Signatures:**  
+`(show_memory: memory: datamap | map | Map, overrideOptions?: datamap | map | Map)`  
+**Examples:**  
+`(show_memory:$memory)`  
+`(show_memory:$memory,(dm:"format","right"))`  
+**Notes:**  
+If the memory has no media path, returns an empty string.
 
-(show_memory: memory, options) - Render memory
-
-Example:
-
-text
-(remember: "stepsis shoplifting", 14, "stepsis", "none", "caught", "shoplifting")
-(recall: "stepsis shoplifting", "not contains", "forgotten")
 ==============================================
 5. ACTIVITIES & GAMEPLAY
 ==============================================
 
-Gameplay Macros:
+**($gain_arousal:)**  
+*Adds arousal in a stylized way (sets $gain and displays the gain-arousal UI passage).*  
+**Signatures:**  
+`($gain_arousal: gain: number)`  
+**Examples:**  
+`($gain_arousal:10)`  
+`($gain_arousal:5)`
 
-($set_mood: "mood", "reason") - Set character mood
+**($register_orgasm:)**  
+*Logs an orgasm event, resets arousal, applies action point changes, and refreshes stats/UI (implementation-specific).*  
+**Signatures:**  
+`($register_orgasm:)`  
+**Examples:**  
+`($register_orgasm:)`  
+**Notes:**  
+Call at the end of orgasm scenes. Exact side effects depend on your build.
 
-($set_status: "status", "reason") - Add status effect
+**Compulsions System:**  
+*Automatic behavior triggers tied to side effects (Bimbo, People Pleaser) that can override player choices.*
 
-($register_orgasm:) - Log orgasm event
-
-($gain_arousal: amount) - Gain arousal with styling
-
-($core_female_status:) - Returns "bimbo" or "female"
-
-Activities System:
-
-Time-based progression
-
-Location-specific (Mall, Gym, Bar, Home)
-
-Stat modifications
-
-Memory creation
-
-Compulsions System:
-
-Automatic behavior triggers
-
-Tied to side effects (Bimbo, People Pleaser)
-
-Can override player choices
-
-Dreams System:
-
-Add [dream] tag to passages
-
-Add to $overnight_messages array
-
-Use memory system for persistence
+**Dreams System:**  
+*Add [dream] tag to passages and add to $overnight_messages array. Use memory system for persistence.*  
+**Example:**  
+`:: Dream Passage [dream]`  
+`(remember: "dream_id", 7, "none", "none", "dream", content)`
 
 ==============================================
 6. MEDIA & UI
 ==============================================
 
-Media Display:
+**($computer_interface:)**  
+*Wraps content in a stylized 'computer/code window' UI container.*  
+**Signatures:**  
+`($computer_interface: content: codehook)`  
+**Examples:**  
+`($computer_interface:[(print:"ACCESS GRANTED")])`
 
-(pic: image, format, class, options) - Display image
+**($notification:)**  
+*Displays a temporary animated notification that fades in/out.*  
+**Signatures:**  
+`($notification: message: string)`  
+**Examples:**  
+`($notification:"You gained 1 charm.")`  
+`($notification:"Your outfit is now dirty.")`
 
-(vid: video, format, class, options) - Display video
+**($notification_still:)**  
+*Displays a persistent notification (no fade animation).*  
+**Signatures:**  
+`($notification_still: message: string)`  
+**Examples:**  
+`($notification_still:"Your makeup has worn off.")`  
+`($notification_still:"You have unread messages.")`
 
-(media: path_or_html, options) - Smart media (auto-detect)
+**($show_hint_once:)**  
+*Shows a hint notification only once per player (persisted in local storage).*  
+**Signatures:**  
+`($show_hint_once: hintKey: string, hintText: string, emoji: string)`  
+**Examples:**  
+`($show_hint_once:"intro_phone","Try checking your phone.","💡")`  
+`($show_hint_once:"outfits","Outfits affect charm and reactions.","👗")`  
+**Notes:**  
+Internally uses localStorage key `hint_shown_<hintKey>`.
 
-($pic:), ($vid:) - Legacy wrappers
+**($smart_screen:)**  
+*Convenience screen builder: shows a media block (pic/vid), then an optional text passage, then an optional options passage inside the standard (screen:) layout.*  
+**Signatures:**  
+`($smart_screen: sidebarPassage: string | PassageName, mediaPath: string, textPassage?: string | PassageName, optionsPassage?: string | PassageName)`  
+**Examples:**  
+`($smart_screen:"character status","places/gym/locker room.jpg","gym intro text","gym options")`  
+`($smart_screen:"character status","scenes/characters/jade/sex/workout/02 get towel.mp4","workout text","workout options")`
 
-UI Components:
+**(floatnote:)**  
+*Shows a floating notification (emoji + title + optional message) and optionally plays a one-shot SFX.*  
+**Signatures:**  
+`(floatnote: emoji: string, title: string, message?: string, audioPath?: string)`  
+**Examples:**  
+`(floatnote:"💡","Hint","Try checking your phone.")`  
+`(floatnote:"💰","Cash","+50",(text:"aud/se/ui/kaching.mp3"))`
 
-(svg-button: icon, size, state, colors, class) - Stylized SVG buttons
+**(icon:)**  
+*Renders a stat icon (Identity/Femininity/Masculinity/Charm/Fitness/Int/Money/Arousal). Some icons are dynamic based on current stat value.*  
+**Signatures:**  
+`(icon: name: string, className?: string, repeat?: number)`  
+**Examples:**  
+`(icon:"money")`  
+`(icon:"arousal","stat-icon")`  
+`(icon:"ident","stat-icon",3)`  
+**Notes:**  
+Icon assets live under `img/ui/stats/512*.png` in the default build.
 
-(floatnote: emoji, title, message, audio) - Floating notifications
+**(picker:)**  
+*Renders a clickable portrait/image picker that writes the chosen value into a Harlowe variable. Accepts [image,value] pairs, datamaps, or mixed inputs.*  
+**Signatures:**  
+`(picker: varName: string, ...options: any | datamap | array)`  
+**Examples:**  
+`(picker:"$chosen","npc/family/stepsis/alexia/portrait_normal.jpg","Alexia","npc/other/jade/portrait.jpg","Jade")`  
+`(picker:"$chosen",(dm:"Alexia","npc/family/stepsis/alexia/portrait_normal.jpg","Jade","npc/other/jade/portrait.jpg"))`  
+**Notes:**  
+The first arg MUST be a string that starts with $. The picker auto-selects the existing value if it matches.
 
-(updateprogress: threshold, points, danger) - Progress bar
+**(svg-button:)**  
+*Renders a stylized SVG button using either a built-in icon name, a custom SVG path, or an image URL. Optional color overrides can be provided via datamap.*  
+**Signatures:**  
+`(svg-button: buttonImage: string, size?: string, state?: string, colors?: datamap | map | Map, className?: string)`  
+**Examples:**  
+`(svg-button:"arrow-right")`  
+`(svg-button:"double-arrow-left","2.4em","active")`  
+`(svg-button:"arrow-right","2em","normal",(dm:"front","#fff","image","#fff","highlight","#ff0"),"my-btn")`  
+**Notes:**  
+If state is "raw", a `<button>` element is used instead of a `<div>` wrapper.
 
-(updatemiddlebar: threshold, points, options) - Middle bar UI
+**(updateprogress:)**  
+*Updates the main win/progress bar UI (threshold/points) and optionally tints it based on danger level.*  
+**Signatures:**  
+`(updateprogress: threshold: number, points: number, danger?: number)`  
+**Examples:**  
+`(updateprogress:100,35)`  
+`(updateprogress:100,80,3.2)`  
+**Notes:**  
+Calls `window.GE.updateStats(threshold, points)` if available.
 
-(icon: "name", class, repeat) - Stat icons
+**(updatemiddlebar:)**  
+*Updates the 'keep it in the middle' bar UI. Accepts either a numeric danger level or an options datamap (source/direction/danger/bonusFraction/pleasureMultiplier).*  
+**Signatures:**  
+`(updatemiddlebar: threshold: number, points: number, dangerOrOptions?: number | datamap | map | Map)`  
+**Examples:**  
+`(updatemiddlebar:100,50)`  
+`(updatemiddlebar:100,72,(dm:"source","player","direction","right","danger",2.5,"bonusFraction",0.6))`
 
-(picker: "$var", options...) - Image picker
+**(pic:)**  
+*Renders an image from the img/ folder. Supports positional format/class args and an optional render-options datamap for width/height/aspect-ratio/filter/etc.*  
+**Signatures:**  
+`(pic: imagePath: string, format?: string, class?: string, options?: datamap | map | Map)`  
+**Examples:**  
+`(pic:"places/gym/locker room.jpg")`  
+`(pic:"places/gym/locker room.jpg","left")`  
+`(pic:"places/gym/locker room.jpg",(dm:"format","right","width","70%","aspect-ratio","16/9","filter","sepia(30%)"))`  
+**Notes:**  
+If you pass a full `<img ...>` snippet as the first argument, (pic:) will try to extract and normalize the src.
 
-Tooltips:
+**(vid:)**  
+*Renders a looping autoplay video.*  
+**Signatures:**  
+`(vid: videoPath: string, format?: string, class?: string, options?: datamap | map | Map)`  
+**Examples:**  
+`(vid:"scenes/characters/jade/sex/workout/02 get towel.mp4")`  
+`(vid:"scenes/characters/jade/sex/workout/02 get towel.mp4",(dm:"format","left","width","80%","aspect-ratio","16/9"))`
 
-(show_tooltip: content, tooltip) - Basic tooltip
+**(media:)**  
+*Renders either an image or video depending on file extension (.mp4 = video). Also supports raw HTML passthrough in the single-arg form.*  
+**Signatures:**  
+`(media: pathOrHtml: string, format?: string, class?: string, options?: datamap | map | Map)`  
+**Examples:**  
+`(media:"places/gym/locker room.jpg")`  
+`(media:"scenes/characters/jade/sex/workout/02 get towel.mp4","right")`  
+`(media:"<img src=\"img/ui/icon.png\">")`  
+**Notes:**  
+If the first argument looks like HTML and you only pass one argument, it is returned as-is.
 
-(show_tooltip_wide: content, tooltip) - Wide layout
+**($pic:)**  
+*Deprecated wrapper for (media:) that displays an image (from img/). Supports legacy format/class args like "left"/"right" and "small".*  
+**Signatures:**  
+`($pic: imagePath: string, format?: string, class?: string, options?: datamap)`  
+**Examples:**  
+`($pic:"places/gym/locker room.jpg")`  
+`($pic:"places/gym/locker room.jpg","left")`  
+**Notes:**  
+Prefer (pic:) or (media:) in new content.
 
-(show_tooltip_text: text, tip) - Text-only
+**($vid:)**  
+*Deprecated wrapper for (media:) that embeds a looping autoplay video (from img/).*  
+**Signatures:**  
+`($vid: videoPath: string, format?: string, class?: string, options?: datamap)`  
+**Examples:**  
+`($vid:"scenes/characters/jade/sex/workout/02 get towel.mp4")`  
+`($vid:"scenes/characters/jade/sex/workout/02 get towel.mp4","left")`  
+**Notes:**  
+Prefer (vid:) or (media:) in new content.
 
-(cleartooltips:), (tooltipgc:), (refreshtooltips:)
+**Text Styling Macros:**
 
-Text Styling:
+**($bimbo:)**  
+*Centers content and wraps it in for bimbo-styled narration/thoughts.*  
+**Signatures:**  
+`($bimbo: content: codehook)`  
+**Examples:**  
+`($bimbo:["Like, I dunno what that means... but it sounds sexy! 💋"])`  
+`($bimbo:[(print:"Ughhh... math is, like, soooo hard!")])`
 
-($centered: [content]) - Centered block
+**($bimbo_dialogue:)**  
+*Renders bimbo-styled dialogue wrapped in quotation marks (so you don't add them).*  
+**Signatures:**  
+`($bimbo_dialogue: content: codehook)`  
+**Examples:**  
+`($bimbo_dialogue:[Omigod, did you, like, feel that too?])`  
+`($bimbo_dialogue:[(twirl:"This is, like, soooo embarrassing...","I am soooo sorry!")])`
 
-($highlight: [content]) - Highlight span
+**($caps:)**  
+*Capitalizes the first letter of each word in a string.*  
+**Signatures:**  
+`($caps: sentence: string)`  
+**Examples:**  
+`(set:_title to ($caps:"just another slutty day"))(print:_title)`  
+`(print: $caps's "turn me into a girl")`
 
-($shadow: [content]) - Shadow text
+**($centered:)**  
+*Wraps content in a centered block (useful for centered UI/text).*  
+**Signatures:**  
+`($centered: content: codehook)`  
+**Examples:**  
+`($centered:["You feel warm and slutty inside."])`  
+`($centered:[(print:"<b>Warning:</b> You are being watched.")])`
 
-($bimbo: [content]) - Bimbo-styled narration
+**($heading:)**  
+*Displays text as a large, shadowed heading using the theme palette.*  
+**Signatures:**  
+`($heading: text: string)`  
+**Examples:**  
+`($heading:"New Objective")`  
+`($heading:"Alexia's Bedroom")`
 
-($bimbo_dialogue: [content]) - Bimbo dialogue
+**($highlight:)**  
+*Wraps content in a for emphasis.*  
+**Signatures:**  
+`($highlight: content: codehook)`  
+**Examples:**  
+`($highlight:["Objective Updated!"])`  
+`($highlight:[(print:$her_name + " seems impressed.")])`
 
-($heading: "text") - Large heading
+**($shadow:)**  
+*Wraps content in a for shadowed/stylized text.*  
+**Signatures:**  
+`($shadow: content: codehook)`  
+**Examples:**  
+`($shadow:["Your heart skips a beat."])`  
+`($shadow:[(print:"Round " + $round_number)])`
 
-($caps: "text") - Capitalize words
+**Tooltip Macros:**
+
+**(show_tooltip:)**  
+*Wraps content with a hover/long-press tooltip using the XCL tooltip system. Accepts code hooks or strings.*  
+**Signatures:**  
+`(show_tooltip: content: codehook | string, tooltip: codehook | string)`  
+`(show_tooltip: type: string, content: codehook | string, tooltip: codehook | string)`  
+**Examples:**  
+`(show_tooltip:[Hover me],[This is the tooltip.])`  
+`(show_tooltip:"wide",[<div class=\"options\">Hover</div>],[Big tooltip!])`  
+**Notes:**  
+If $tooltips_enabled is "Tooltips: Disabled", only the content is rendered (no tooltip wrapper).
+
+**(show_tooltip_advanced:)**  
+*Alias of (show_tooltip:).*  
+**Signatures:**  
+`(show_tooltip_advanced: typeOrContent: string | codehook, contentOrTooltip: codehook | string, tooltip?: codehook | string)`  
+**Examples:**  
+`(show_tooltip_advanced:"wide",[Hover],[Tooltip])`
+
+**(show_tooltip_text:)**  
+*String-only version of (show_tooltip:). The text and tip are treated as plain text (escaped).*  
+**Signatures:**  
+`(show_tooltip_text: text: string, tip: string)`  
+**Examples:**  
+`(show_tooltip_text:"Charm","Affects flirting outcomes.")`
+
+**(show_tooltip_wide:)**  
+*Wide-layout version of (show_tooltip:).*  
+**Signatures:**  
+`(show_tooltip_wide: content: codehook | string, tooltip: codehook | string)`  
+**Examples:**  
+`(show_tooltip_wide:[<div class="options">Hover</div>],[This is a wide tooltip.])`
+
+**(cleartooltips:)**  
+*Clears and removes all active XCL tooltip DOM nodes and listeners (hard reset).*  
+**Signatures:**  
+`(cleartooltips:)`  
+**Examples:**  
+`(cleartooltips:)`
+
+**(refreshtooltips:)**  
+*Repositions all visible tooltips (useful after font loads or layout shifts).*  
+**Signatures:**  
+`(refreshtooltips:)`  
+**Examples:**  
+`(refreshtooltips:)`
+
+**(tooltipgc:)**  
+*Prunes disconnected/stale tooltip bindings and rotates global tooltip listeners (leak prevention).*  
+**Signatures:**  
+`(tooltipgc:)`  
+**Examples:**  
+`(tooltipgc:)`
 
 ==============================================
 7. DATA & UTILITIES
 ==============================================
 
-Randomness:
+**Math Macros:**
 
-(newseed:) - Generate random seed
+**(average:)**  
+*Calculates the arithmetic mean of the given numeric arguments (ignores non-numbers). Returns 0 if no valid numbers.*  
+**Signatures:**  
+`(average: ...values: number | any)`  
+**Examples:**  
+`(set:$avg to (average:1,2,3,4,5))`  
+`(print:(average:$charm,$intellect,$fitness))`
 
-(twist: min, max) - Random integer
+**(clamp:)**  
+*Clamps a number between min and max (inclusive).*  
+**Signatures:**  
+`(clamp: value: number, min: number, max: number)`  
+**Examples:**  
+`(set:_x to (clamp:15,10,20))`  
+`(set:_x to (clamp:25,10,20))`
 
-(twirl: values...) - Random value
+**(convert:)**  
+*Converts a value between supported units (currently: cm→ft/in, in→ft/in, kg→lbs). Returns a string.*  
+**Signatures:**  
+`(convert: value: number | string, fromUnit: string, toUnit: string)`  
+**Examples:**  
+`(print:(convert:170,"cm","ftin"))`  
+`(print:(convert:70,"kg","lbs"))`  
+`(print:(convert:68,"in","ft/in"))`  
+**Notes:**  
+If a conversion is unsupported, it returns the original value as a string and logs a console warning.
 
-(twerk: hooks...) - Random code execution
+**(rnd:)**  
+*Rounds a number to a specified decimal precision (0+).*  
+**Signatures:**  
+`(rnd: amount: number, precision?: number)`  
+**Examples:**  
+`(set:$rounded to (rnd:3.14159,2))`  
+`(print:(rnd:12.347,1))`
 
-(twisted: values...) - Shuffle array
+**(sum:)**  
+*Sums numeric values. Accepts either a single array or variadic args; non-numbers count as 0.*  
+**Signatures:**  
+`(sum: ...values: number | any | array)`  
+**Examples:**  
+`(set:_total to (sum:1,2,3))`  
+`(set:_total to (sum:(a:1,2,3,"x")))`
 
-(either: values...) - Harlowe random choice
+**Data Manipulation Macros:**
 
-(shuffled: values...) - Harlowe shuffle
+**(check_dm:)**  
+*Checks a datamap key against a value using an operation (e.g. "is", "contains"). Returns true/false.*  
+**Signatures:**  
+`(check_dm: datamap: datamap | map | Map, key: string, operation: string, value: any)`  
+**Examples:**  
+`(set:_dm to (dm:"key1","value1","key2",(a:"value2","value3")))`  
+`(set:_r1 to (check_dm:_dm,"key1","is","value1"))`  
+`(set:_r2 to (check_dm:_dm,"key2","contains","value2"))`
 
-Math:
+**(checkdm:)**  
+*Alias of (check_dm:) in some builds. Checks a datamap key against a value using an operation.*  
+**Signatures:**  
+`(checkdm: datamap: datamap | map | Map, key: string, operation: string, value: any)`  
+**Examples:**  
+`(checkdm:(dm:"a",(a:1,2,3)),"a","contains",2)`  
+**Notes:**  
+If your build only provides (check_dm:), use that instead.
 
-(average: values...) - Arithmetic mean
+**(dmround:)**  
+*Rounds all numeric values inside a datamap (recursively through nested datamaps and arrays).*  
+**Signatures:**  
+`(dmround: datamap: datamap | map | Map, precision?: number)`  
+**Examples:**  
+`(set:_dm to (dm:"a",1.234,"b",(a:2.345,(dm:"c",3.456))))`  
+`(set:_rounded to (dmround:_dm,2))`
 
-(rnd: number, precision) - Rounding
+**(hash:)**  
+*Generates a deterministic 32-bit hash of a value (strings/numbers/booleans/arrays/datamaps/objects/functions) and returns a positive hex string.*  
+**Signatures:**  
+`(hash: input: any)`  
+**Examples:**  
+`(print:(hash:"hello"))`  
+`(set:_id to (hash:$character))`  
+`(set:_sig to (hash:(a:1,2,3)))`  
+**Notes:**  
+This is a non-cryptographic hash (fast/fingerprint), not a secure hashing function.
 
-(clamp: value, min, max) - Clamp value
+**(indexof:)**  
+*Finds the 1-based index of an item in an array. Returns -1 if not found.*  
+**Signatures:**  
+`(indexof: array: array, item: any)`  
+**Examples:**  
+`(set:$index to (indexof:(a:"apple","banana","cherry"),"banana"))`  
+`(if:(indexof:$inventory,"key") > 0)[You have a key.]`
 
-(sum: values...) - Sum numbers
+**(intersection:)**  
+*Returns the intersection of two arrays (their shared elements).*  
+**Signatures:**  
+`(intersection: a: array, b: array)`  
+**Examples:**  
+`(set:$common to (intersection:(a:"apple","banana"),(a:"banana","cherry")))`  
+`(if:(intersection:$tags,(a:"dream","night"))'s length > 0)[...]`
 
-(convert: value, from, to) - Unit conversion
+**(remove:)**  
+*Removes a specified number of occurrences of an item from an array and returns the new array.*  
+**Signatures:**  
+`(remove: array: array, item: any, count?: number)`  
+**Examples:**  
+`(set:$modified to (remove:(a:"apple","banana","cherry","apple"),"apple",1))`  
+`(set:$clean to (remove:$tags,"dream",99))`
 
-Data Manipulation:
+**Randomness Macros:**
 
-(dm: key1, value1, key2, value2...) - Create datamap
+**(newseed:)**  
+*Generates a fresh random seed string (hex), suitable for Twine's (seed:) or your RNG systems.*  
+**Signatures:**  
+`(newseed:)`  
+**Examples:**  
+`(set:$seed to (newseed:))`  
+`(seed:(newseed:))`  
+**Notes:**  
+Prefers crypto RNG when available; otherwise mixes time and Math.random.
 
-(check_dm: dm, key, operation, value) - Check datamap
+**(twist:)**  
+*Random integer between min and max (inclusive), using Mersenne Twister if available (with unbiased rejection sampling).*  
+**Signatures:**  
+`(twist: min: number, max: number)`  
+**Examples:**  
+`(set:_roll to (twist:1,10))`  
+`(if:(twist:1,100) < 15)[Lucky!]`
 
-(dmround: datamap, precision) - Round numeric values
+**(twirl:)**  
+*Picks a random value from arguments (or from a single array argument). Returns 0 for empty input/empty arrays.*  
+**Signatures:**  
+`(twirl: ...values: any | array)`  
+**Examples:**  
+`(set:_fruit to (twirl:"apple","banana","cherry"))`  
+`(set:_pick to (twirl:...(a:"one","two","three")))`  
+`(set:_maybe to (twirl:...(find:_m where _m's npc is "stepsis")))`
 
-(hash: value) - Generate hash
+**(twerk:)**  
+*Returns ONE of the given code hooks at random (renders the chosen hook). Uses the same RNG as (twist:).*  
+**Signatures:**  
+`(twerk: ...hooks: codehook | array)`  
+**Examples:**  
+`(twerk:[One choice.],[Another choice.])`  
+`(twerk:[(print:"A")],[(print:"B")],[(print:"C")])`  
+**Notes:**  
+All arguments must be code hooks; otherwise an error is thrown.
 
-(indexof: array, item) - Find index
+**(twisted:)**  
+*Returns a shuffled copy of the given array (or shuffled list of args), using Fisher–Yates with the same RNG as (twist:).*  
+**Signatures:**  
+`(twisted: ...values: any | array)`  
+**Examples:**  
+`(set:_shuffled to (twisted:(a:"apple","banana","cherry")))`  
+`(set:_top3 to (subarray:(twisted:...(range:1,20)),1,3))`
 
-(intersection: a, b) - Array intersection
+**Storage Macros:**
 
-(remove: array, item, count) - Remove from array
+**($get_local_storage:)**  
+*Reads a JSON value from browser localStorage. Returns default if missing/invalid.*  
+**Signatures:**  
+`($get_local_storage: name: string, default: any)`  
+**Examples:**  
+`(set:_mood to ($get_local_storage:"last_mood","bored"))`  
+`(set:_flags to ($get_local_storage:"debug_flags",(a:)))`
 
-Storage:
+**($get_session_storage:)**  
+*Reads a JSON value from browser sessionStorage. Returns default if missing/invalid.*  
+**Signatures:**  
+`($get_session_storage: name: string, default: any)`  
+**Examples:**  
+`(set:_mood to ($get_session_storage:"last_mood","bored"))`  
+`(set:_flags to ($get_session_storage:"debug_flags",(a:)))`
 
-($get_session_storage: key, default) - Read sessionStorage
+**($set_local_storage:)**  
+*Writes a value to localStorage as JSON.*  
+**Signatures:**  
+`($set_local_storage: name: string, value: any)`  
+**Examples:**  
+`($set_local_storage:"debug_flags",(a:"showIDs"))`  
+`($set_local_storage:"quickMenuButton",true)`
 
-($get_local_storage: key, default) - Read localStorage
+**($set_session_storage:)**  
+*Writes a value to sessionStorage as JSON.*  
+**Signatures:**  
+`($set_session_storage: name: string, value: any)`  
+**Examples:**  
+`($set_session_storage:"last_mood","humiliated")`  
+`($set_session_storage:"debug_flags",(a:"showIDs"))`
 
-($set_session_storage: key, value) - Write sessionStorage
+**(get_storage:)**  
+*Reads a JSON value from localStorage or sessionStorage (depending on the first arg). Returns default if missing.*  
+**Signatures:**  
+`(get_storage: storage: string, name: string, default: any)`  
+**Examples:**  
+`(set:_hint_shown to (get_storage:"local","hint_shown_intro","false"))`  
+`(set:_tmp to (get_storage:"session","temp_state",(dm:)))`
 
-($set_local_storage: key, value) - Write localStorage
+**(set_storage:)**  
+*Writes a value to localStorage or sessionStorage (depending on the first arg) as JSON.*  
+**Signatures:**  
+`(set_storage: storage: string, name: string, value: any)`  
+**Examples:**  
+`(set_storage:"local","hint_shown_intro","true")`  
+`(set_storage:"session","temp_state",(dm:"x",1))`
 
-(savegameto: "slot") - Save game
-
-(get_storage: "type", key, default) - Generic read
-
-(set_storage: "type", key, value) - Generic write
-
-Audio:
-
-($play: type, track, delay) - Play audio tracks
-
-Types: "sound", "ambience", "sex loop", "song", "scene", "story"
-
-Debug:
-
-(clearstandardvars:) - Reset engine variables
-
-(del: "$var1", "$var2") - Delete variables
-
-($delete_global_variable: "$var") - Reset global
-
-($get_global: "$var", "js_expr") - Copy JS to Twine
-
-($use_global: "$var", "js_expr", hook) - Temporary JS
-
-($record_timing: "point") - Performance profiling
-
-(win:) - Check if $result is "pass"
+**(savegameto:)**  
+*Saves the current game state to a named slot.*  
+**Signatures:**  
+`(savegameto: slotName: string)`  
+**Examples:**  
+`(savegameto:"slot1")`  
+`(savegameto:"autosave")`
 
 ==============================================
 8. MODDING TOOLS
 ==============================================
 
-Essential Modding Macros:
+**($char_passage:)**  
+*Runs core logic for base characters, otherwise tries to (display:) a character-specific passage named "<base_passage> <character_id>" (mod-friendly). Falls back if not found.*  
+**Signatures:**  
+`($char_passage: basePassage: string, core: codehook, fallback: codehook)`  
+**Examples:**  
+`($char_passage:"sex transactional kiss",[ (set:$kiss_variant to "kiss") ],[ (set:$kiss_variant to "kiss") ])`  
+**Notes:**  
+This macro is designed for modded characters: modders can add a passage named exactly like "<base_passage> <character_id>".
 
-($char_passage: base, core, fallback) - Character content
+**($bargirl_passage:)**  
+*NPC variant of $char_passage. For base NPCs runs core logic; otherwise tries to (display:) "<base_passage> <npc_id>" and falls back if missing.*  
+**Signatures:**  
+`($bargirl_passage: basePassage: string, core: codehook, fallback: codehook)`  
+**Examples:**  
+`($bargirl_passage:"bar flirt",[ (display:"bar flirt base") ],[ (display:"bar flirt fallback") ])`
 
-($bargirl_passage: base, core, fallback) - NPC content
-
-($passage_tags: "tag") - Mod injection points
-
-($show_base_npc: "npc_id") - Load NPC for mods/debug
-
-Best Practices:
-
-Use official macros for compatibility
-
-Prefix custom variables: $_modname_variable
-
-Test with base game updates
-
-Use (display:) for UI refreshes
-
-Clean up unused variables
-
-Document mod requirements
+**($passage_tags:)**  
+*Displays every passage tagged with the given tag. Used as a mod injection point ("drop-in" blocks).*  
+**Signatures:**  
+`($passage_tags: tag: string)`  
+**Examples:**  
+`($passage_tags:"bar_options")`  
+`($passage_tags:"mall_locations")`  
+**Notes:**  
+Modders can add new passages tagged with the same tag to inject new UI/options into that location.
 
 ==============================================
 9. STATS & CHECKS
 ==============================================
 
-Stat Checks:
+**($charm_check:)**  
+*Performs a charm-based skill check. Chance derived from charm and difficulty.*  
+**Signatures:**  
+`($charm_check: nextPassage: string | PassageName, difficulty: number)`  
+**Examples:**  
+`($charm_check:"resist temptation",40)`  
+`($charm_check:"walk away",70)`
 
-($willpower_check: "passage", difficulty) - Fixed chance (101-difficulty)
+**($fitness_check:)**  
+*Performs a fitness-based skill check. Chance derived from fitness and difficulty.*  
+**Signatures:**  
+`($fitness_check: nextPassage: string | PassageName, difficulty: number)`  
+**Examples:**  
+`($fitness_check:"resist temptation",40)`  
+`($fitness_check:"walk away",70)`
 
-($charm_check: "passage", difficulty) - Charm-based chance
+**($intellect_check:)**  
+*Performs an intellect-based skill check. Chance derived from intellect and difficulty.*  
+**Signatures:**  
+`($intellect_check: nextPassage: string | PassageName, difficulty: number)`  
+**Examples:**  
+`($intellect_check:"resist temptation",40)`  
+`($intellect_check:"walk away",70)`
 
-($intellect_check: "passage", difficulty) - Intellect-based chance
+**($willpower_check:)**  
+*Performs a willpower check using a fixed chance (101 - difficulty). If successful, navigates to nextPassage.*  
+**Signatures:**  
+`($willpower_check: nextPassage: string | PassageName, difficulty: number)`  
+**Examples:**  
+`($willpower_check:"resist temptation",40)`  
+`($willpower_check:"walk away",70)`
 
-($fitness_check: "passage", difficulty) - Fitness-based chance
-
-Usage:
-
-text
-($charm_check: "flirt_success", 60)  # 60% success chance
-($willpower_check: "resist", 40)     # 61% chance (101-40)
 ==============================================
 10. ECONOMY
 ==============================================
 
-Money Macros:
+**($gain_money:)**  
+*Adds money to the player total and updates the money display (often with SFX/animation).*  
+**Signatures:**  
+`($gain_money: amount: number)`  
+**Examples:**  
+`($gain_money:50)`  
+`($gain_money:200)`
 
-($gain_money: amount) - Add money with UI updates
+**($pay_money:)**  
+*Subtracts money from the player total (often clamped at 0) and updates the money display (often with SFX/animation).*  
+**Signatures:**  
+`($pay_money: amount: number)`  
+**Examples:**  
+`($pay_money:25)`  
+`($pay_money:100)`
 
-($pay_money: amount) - Subtract money
+**(currency:)**  
+*Formats a number into a currency string (USD-style, no cents).*  
+**Signatures:**  
+`(currency: amount: number)`  
+**Examples:**  
+`(currency:65)`  
+`(currency:_given)`  
+`(print:(currency:$money))`
 
-(currency: amount) - Format as currency (USD)
-
-Examples:
-
-text
-($gain_money: 50)
-($pay_money: 25)
-(print: (currency: 65))  # "$65"
 ==============================================
 11. MOOD & STATUS
 ==============================================
 
-Mood & Status Macros:
+**($set_mood:)**  
+*Sets the current mood (icon + stat buffs + duration) and refreshes mood/stat UI. Mood must exist in your mood table.*  
+**Signatures:**  
+`($set_mood: moodName: string, reason: string)`  
+**Examples:**  
+`($set_mood:"humiliated","because " + (text:$her_name) + " rejected you.")`  
+`($set_mood:"bored","because you have been hanging around the house too much!")`
 
-($set_mood: "mood", "reason") - Set mood (icon + buffs)
+**($set_status:)**  
+*Adds a temporary status effect (stat modifiers + display text) and refreshes status UI. Status must exist in your status table.*  
+**Signatures:**  
+`($set_status: statusName: string, reason: string)`  
+**Examples:**  
+`($set_status:"cum breath","Alexia came in your mouth, and your breath smells...")`  
+`($set_status:"walking funny","Your ass hurts so bad you can barely walk straight...")`
 
-($set_status: "status", "reason") - Add status effect
-
-Requirements:
-
-Mood/status must exist in game tables
-
-Automatically updates UI
-
-Examples:
-
-text
-($set_mood: "humiliated", "because she rejected you")
-($set_status: "cum breath", "Alexia came in your mouth")
 ==============================================
 12. WARDROBE
 ==============================================
 
-Wardrobe System:
+**(outfitdb:)**  
+*Retrieves a list of outfits for a specified character, optionally filtered by outfit IDs.*  
+**Signatures:**  
+`(outfitdb: characterId: string, outfitIds?: array)`  
+**Examples:**  
+`(set:$outfits to (outfitdb:"alexia"))`  
+`(set:$filtered to (outfitdb:"alexia",(a:"outfit1","outfit2")))`
 
-(outfitdb: "character", outfit_ids) - Get outfits
+**(getoutfit:)**  
+*Retrieves details of a specific outfit by its outfit key/id.*  
+**Signatures:**  
+`(getoutfit: outfitKey: string)`  
+**Examples:**  
+`(set:$outfit to (getoutfit:"alexia casual sundress"))`  
+`(print:$outfit's "name")`
 
-(getoutfit: "outfit_key") - Get outfit details
-
-Usage:
-
-text
-(set: $outfits to (outfitdb: "alexia"))
-(set: $outfit to (getoutfit: "alexia casual sundress"))
 ==============================================
 13. AUDIO
 ==============================================
 
-Audio Playback:
+**($play:)**  
+*Plays an audio track (sound/ambience/sex loop/song). Also supports directory-specific shortcuts like "scene"/"story"/"secretary"/"workout".*  
+**Signatures:**  
+`($play: type: string, track: string, delay?: string)`  
+**Examples:**  
+`($play:"sound","ui good")`  
+`($play:"ambience","indoors afternoon")`  
+`($play:"sex loop","slow_ride")`  
+`($play:"scene","thwack","2s")`  
+`($play:"song no loop","main_theme")`  
+**Notes:**  
+Exact routing and folders depend on your XCL build.
 
-($play: type, track, delay) - Play audio tracks
-
-Audio Types:
-
-"sound" - UI sound effects
-
-"ambience" - Background sounds
-
-"sex loop" - Loop music for scenes
-
-"song" - Music tracks
-
-"scene" - Scene-specific (folder shortcuts)
-
-"story" - Storytelling audio
-
-Examples:
-
-text
-($play: "sound", "ui good")
-($play: "ambience", "indoors afternoon")
-($play: "scene", "thwack", "2s")
 ==============================================
 14. LOGIC & MINIGAMES
 ==============================================
 
-Logic Macros:
+**(win:)**  
+*Returns true if $result is the string "pass" (common pattern for minigames/checks).*  
+**Signatures:**  
+`(win:)`  
+**Examples:**  
+`(set:$result to "pass")(set:$didWin to (win:))`  
+`(if:(win:))[You win!](else:)[You lose.]`
 
-(win:) - Returns true if $result is "pass"
+**($word_game_setup:)**  
+*Sets up the word/dirty-talk minigame by sampling and shuffling lines into $word_game (first lines + sentences).*  
+**Signatures:**  
+`($word_game_setup: dirtyTalkPairs: array)`  
+**Examples:**  
+`(set:_dirty to (a:"Line 1","Sentence 1","Line 2","Sentence 2"))($word_game_setup:_dirty)`  
+**Notes:**  
+Selects up to 10 random pairs from the provided list.
 
-($word_game_setup: dirty_talk_pairs) - Setup word minigame
-
-Usage:
-
-text
-(set: $result to "pass")
-(if: (win:))[You win!]
-
-($word_game_setup: (a: "Line 1", "Sentence 1", "Line 2", "Sentence 2"))
 ==============================================
 15. REFERENCES & LINKS
 ==============================================
 
-Official Documentation:
+**Official Documentation:**  
+- Bar Girl System: https://x-change.life/wiki/docs/bar-girl/  
+- Playable Character: https://x-change.life/wiki/docs/playable-character/  
+- Activities System: https://x-change.life/wiki/docs/quick-guide-to-the-activities-system/  
+- Custom Macros: https://x-change.life/wiki/docs/custom-x-change-life-macros-you-can-use-in-mods/  
+- Creating Mods: https://x-change.life/wiki/docs/creating-mods/  
+- Compulsions: https://x-change.life/wiki/docs/compulsions/  
+- Memory System: https://x-change.life/wiki/docs/xcl-memory-system/  
+- Adding Dreams: https://x-change.life/wiki/docs/adding-a-dream/
 
-Bar Girl System: https://x-change.life/wiki/docs/bar-girl/
-
-Playable Character: https://x-change.life/wiki/docs/playable-character/
-
-Activities System: https://x-change.life/wiki/docs/quick-guide-to-the-activities-system/
-
-Custom Macros: https://x-change.life/wiki/docs/custom-x-change-life-macros-you-can-use-in-mods/
-
-Creating Mods: https://x-change.life/wiki/docs/creating-mods/
-
-Compulsions: https://x-change.life/wiki/docs/compulsions/
-
-Memory System: https://x-change.life/wiki/docs/xcl-memory-system/
-
-Adding Dreams: https://x-change.life/wiki/docs/adding-a-dream/
-
-Code Repository:
-
+**Code Repository:**  
 https://gitgud.io/xchange-life/xcl-twee-xlowe
 
-Harlowe Macros (Standard):
+**Harlowe Macros (Standard):**  
+- Variables: (set:), (put:), (move:)  
+- Control Flow: (if:), (unless:), (else:), (for:), (loop:)  
+- Data Structures: (a:), (dm:), (ds:), (range:), (find:)
 
-Variables: (set:), (put:), (move:)
-
-Control Flow: (if:), (unless:), (else:), (for:), (loop:)
-
-Data Structures: (a:), (dm:), (ds:), (range:), (find:)
-
-TGP Macros (Also Available):
-
-(indexofpage:), (indexofstatchange:), (and:), (not:)
-
-(choice:), (resettopage:), (change_stat:), (read_stat:)
-
-(notification:), (audiotoggle:), (playwhenread:), (map:)
+**TGP Macros (Also Available):**  
+- (indexofpage:), (indexofstatchange:), (and:), (not:)  
+- (choice:), (resettopage:), (change_stat:), (read_stat:)  
+- (notification:), (audiotoggle:), (playwhenread:), (map:)
 
 ==============================================
 16. GAME ARCHITECTURE & STRUCTURE
 ==============================================
 
-Game Folder Structure:
+**Game Folder Structure:**  
+xcl-twee-xlowe/
+├── img/ # All media assets
+│ ├── ui/ # Interface elements
+│ │ ├── stats/ # Stat icons
+│ │ └── icons/ # UI icons
+│ ├── npc/ # Character portraits
+│ ├── places/ # Location backgrounds
+│ ├── scenes/ # Scene-specific media
+│ └── aud/ # Audio files
+├── passages/ # Game content (Twee format)
+├── macros/ # Macro definitions
+├── scripts/ # JavaScript files
+└── styles/ # CSS stylesheets
 
 text
-xcl-twee-xlowe/
-├── img/                    # All media assets
-│   ├── ui/                # Interface elements
-│   │   ├── stats/         # Stat icons
-│   │   └── icons/         # UI icons
-│   ├── npc/               # Character portraits
-│   ├── places/            # Location backgrounds
-│   ├── scenes/           # Scene-specific media
-│   └── aud/              # Audio files
-├── passages/             # Game content (Twee format)
-├── macros/              # Macro definitions
-├── scripts/             # JavaScript files
-└── styles/              # CSS stylesheets
-Game State Variables:
 
-$day / $time - Current day and time
-
-$money - Player's money
-
-$charm / $intellect / $fitness - Core stats
-
-$arousal - Arousal level
-
-$identity / $femininity / $masculinity - Gender stats
-
-$current_activity - Current location/activity
-
-$next - Next passage
-
-$choice - Last choice made
-
-$stage - Scene stage/progress
-
-$pill_taken - Last pill taken
-
-$npc / $npc_select - Current NPC data
-
-$memories - Memory database
-
-$pages - Progress tracking
-
-$result - Minigame result
-
-$sound - Audio toggle
+**Game State Variables:**  
+- `$day` / `$time` - Current day and time  
+- `$money` - Player's money  
+- `$charm` / `$intellect` / `$fitness` - Core stats  
+- `$arousal` - Arousal level  
+- `$identity` / `$femininity` / `$masculinity` - Gender stats  
+- `$current_activity` - Current location/activity  
+- `$next` - Next passage  
+- `$choice` - Last choice made  
+- `$stage` - Scene stage/progress  
+- `$pill_taken` - Last pill taken  
+- `$npc` / `$npc_select` - Current NPC data  
+- `$memories` - Memory database  
+- `$pages` - Progress tracking  
+- `$result` - Minigame result  
+- `$sound` - Audio toggle  
 
 ==============================================
 17. ADVANCED MODDING SYSTEMS
 ==============================================
 
-Dynamic Content Injection:
+**Dynamic Content Injection:**  
+- Use `($passage_tags: "tag")` for mod injection  
+- Add passages with specific tags to inject content  
 
-Use ($passage_tags: "tag") for mod injection
+**Mod Configuration:**  
+- Store settings in localStorage  
+- Use namespaced variables: `$_my_mod_variable`  
+- Provide configuration passages  
 
-Add passages with specific tags to inject content
+**Cross-Mod Compatibility:**  
+- Check for existing mods before overwriting  
+- Use unique passage names  
+- Document dependencies  
+- Use version checking  
 
-Mod Configuration:
-
-Store settings in localStorage
-
-Use namespaced variables: $_my_mod_variable
-
-Provide configuration passages
-
-Cross-Mod Compatibility:
-
-Check for existing mods before overwriting
-
-Use unique passage names
-
-Document dependencies
-
-Use version checking
-
-Performance Considerations:
-
-Optimize image sizes (1280x720 max)
-
-Use WebP format
-
-Limit concurrent audio
-
-Use (display:) for partial updates
-
-Clean up temporary variables
+**Performance Considerations:**  
+- Optimize image sizes (1280x720 max)  
+- Use WebP format  
+- Limit concurrent audio  
+- Use `(display:)` for partial updates  
+- Clean up temporary variables  
 
 ==============================================
 18. SCRIPTING & JAVASCRIPT INTEGRATION
 ==============================================
 
-JavaScript Global Objects:
+**JavaScript Global Objects:**  
+- `window.GE` - Game engine  
+- `window.GE.updateStats()` - Update UI stats  
+- `window.GE.scene_select` - Scene selection  
 
-window.GE - Game engine
+**JavaScript Macros:**  
+- `($get_global: "$var", "window.GE.property")`  
+- `($use_global: "$var", "jsExpression", [hook])`  
+- `(script: "javascript code")` - Direct injection  
 
-window.GE.updateStats() - Update UI stats
-
-window.GE.scene_select - Scene selection
-
-JavaScript Macros:
-
-($get_global: "$var", "window.GE.property")
-
-($use_global: "$var", "jsExpression", [hook])
-
-(script: "javascript code") - Direct injection
-
-Custom JavaScript:
-
-Complex calculations
-
-External API calls
-
-Advanced UI manipulations
-
-Browser API integration
+**Custom JavaScript:**  
+- Complex calculations  
+- External API calls  
+- Advanced UI manipulations  
+- Browser API integration  
 
 ==============================================
 19. TESTING & DEBUGGING
 ==============================================
 
-Debug Macros:
+**Debug Macros:**  
+- `(debug:)` - Open debug panel  
+- `(assert: condition)` - Assertion checking  
+- `(assert-exists: target)` - Check hook/passage  
+- `(mock-turns: n)` - Mock turn count  
+- `(mock-visits: passages...)` - Mock visits  
 
-(debug:) - Open debug panel
-
-(assert: condition) - Assertion checking
-
-(assert-exists: target) - Check hook/passage
-
-(mock-turns: n) - Mock turn count
-
-(mock-visits: passages...) - Mock visits
-
-Testing Tools:
-
-Browser Developer Tools (F12)
-
-Console logging
-
-Variable inspection
-
-Passage history
-
-Save/load testing
+**Testing Tools:**  
+- Browser Developer Tools (F12)  
+- Console logging  
+- Variable inspection  
+- Passage history  
+- Save/load testing  
 
 ==============================================
 20. COMMUNITY & RESOURCES
 ==============================================
 
-Official Channels:
+**Official Channels:**  
+- Discord: https://discord.gg/B2g2YYFn2N  
+- GitHub/GitLab: https://gitgud.io/xchange-life  
+- Wiki: https://x-change.life/wiki/  
 
-Discord: https://discord.gg/B2g2YYFn2N
+**Learning Resources:**  
+- Twine Cookbook: https://twinery.org/cookbook/  
+- Harlowe Manual: https://twine2.neocities.org/  
+- Twee Documentation: https://github.com/iftechfoundation/twee-spec  
 
-GitHub/GitLab: https://gitgud.io/xchange-life
-
-Wiki: https://x-change.life/wiki/
-
-Learning Resources:
-
-Twine Cookbook: https://twinery.org/cookbook/
-
-Harlowe Manual: https://twine2.neocities.org/
-
-Twee Documentation: https://github.com/iftechfoundation/twee-spec
-
-Tools for Modders:
-
-Tweego: https://github.com/tmedwards/tweego
-
-Twine 2: https://twinery.org/
-
-Image editors: GIMP, Krita, Photoshop
-
-Audio editors: Audacity, Ocenaudio
+**Tools for Modders:**  
+- Tweego: https://github.com/tmedwards/tweego  
+- Twine 2: https://twinery.org/  
+- Image editors: GIMP, Krita, Photoshop  
+- Audio editors: Audacity, Ocenaudio  
 
 ==============================================
 21. COMPLETE WORKFLOW EXAMPLE
 ==============================================
 
-Step 1: Planning
+**Step 1: Planning**  
+- Define mod scope  
+- Sketch passage flow  
+- List required media  
 
-Define mod scope
+**Step 2: Setup**  
+- Clone XCL repository  
+- Create mod folder structure  
+- Set up development environment  
 
-Sketch passage flow
+**Step 3: Implementation**  
+- Create NPC data (if adding NPC)  
+- Write passage content with tags  
+- Add media files  
+- Implement logic using XCL macros  
+- Create integration points  
 
-List required media
+**Step 4: Testing**  
+- Test individual passages  
+- Test integration  
+- Test save/load  
+- Test with different states  
+- Performance testing  
 
-Step 2: Setup
+**Step 5: Documentation**  
+- Write README  
+- Document features  
+- List known issues  
+- Provide contact info  
 
-Clone XCL repository
-
-Create mod folder structure
-
-Set up development environment
-
-Step 3: Implementation
-
-Create NPC data (if adding NPC)
-
-Write passage content with tags
-
-Add media files
-
-Implement logic using XCL macros
-
-Create integration points
-
-Step 4: Testing
-
-Test individual passages
-
-Test integration
-
-Test save/load
-
-Test with different states
-
-Performance testing
-
-Step 5: Documentation
-
-Write README
-
-Document features
-
-List known issues
-
-Provide contact info
-
-Step 6: Distribution
-
-Package mod files
-
-Create instructions
-
-Share with community
-
-Gather feedback
+**Step 6: Distribution**  
+- Package mod files  
+- Create instructions  
+- Share with community  
+- Gather feedback  
 
 ==============================================
 22. FUTURE-PROOFING YOUR MOD
 ==============================================
 
-Version Compatibility:
+**Version Compatibility:**  
+- Check XCL version before loading  
+- Use feature detection  
+- Graceful degradation  
 
-Check XCL version before loading
+**Update Strategy:**  
+- Follow XCL updates  
+- Test with new versions  
+- Maintain changelog  
+- Provide migration paths  
 
-Use feature detection
-
-Graceful degradation
-
-Update Strategy:
-
-Follow XCL updates
-
-Test with new versions
-
-Maintain changelog
-
-Provide migration paths
-
-Community Standards:
-
-Follow naming conventions
-
-Document code
-
-Provide examples
-
-Be responsive to bugs
-
-Credit resources
+**Community Standards:**  
+- Follow naming conventions  
+- Document code  
+- Provide examples  
+- Be responsive to bugs  
+- Credit resources  
 
 ==============================================
 23. APPENDIX: QUICK REFERENCE
 ==============================================
 
-Essential Macros:
+**Essential Macros:**  
+- Navigation: `(goto:)`, `(cs:)`, `(screen:)`, `(display:)`  
+- Choices: `(simple_option:)`, `(multi_option:)`  
+- Character: `(is_fem:)`, `(is_preg:)`, `(pill:)`  
+- Memory: `(remember:)`, `(recall:)`, `(forget:)`  
+- Media: `(pic:)`, `(vid:)`, `(media:)`  
+- UI: `(floatnote:)`, `(updateprogress:)`, `(icon:)`  
+- Data: `(dm:)`, `(check_dm:)`, `(hash:)`  
+- Storage: `($get_local_storage:)`, `($set_local_storage:)`  
 
-Navigation: (goto:), (cs:), (screen:), (display:)
+**Common Variable Patterns:**  
+- `$modname_feature = true/false` - Mod toggles  
+- `$_temp_variable` - Temporary calculations  
+- `$global_mod_data = (dm: ...)` - Mod data storage  
+- `$npc_modname_stats = (a: ...)` - NPC extension  
 
-Choices: (simple_option:), (multi_option:)
-
-Character: (is_fem:), (is_preg:), (pill:)
-
-Memory: (remember:), (recall:), (forget:)
-
-Media: (pic:), (vid:), (media:)
-
-UI: (floatnote:), (updateprogress:), (icon:)
-
-Data: (dm:), (check_dm:), (hash:)
-
-Storage: ($get_local_storage:), ($set_local_storage:)
-
-Common Variable Patterns:
-
-$modname_feature = true/false - Mod toggles
-
-$_temp_variable - Temporary calculations
-
-$global_mod_data = (dm: ...) - Mod data storage
-
-$npc_modname_stats = (a: ...) - NPC extension
-
-File Naming:
-
-passages/modname_feature.twee - Mod passages
-
-img/mods/modname/asset.png - Mod images
-
-scripts/modname.js - Mod JavaScript
-
-styles/modname.css - Mod styles
+**File Naming:**  
+- `passages/modname_feature.twee` - Mod passages  
+- `img/mods/modname/asset.png` - Mod images  
+- `scripts/modname.js` - Mod JavaScript  
+- `styles/modname.css` - Mod styles  
 
 ==============================================
 24. FINAL NOTES
 ==============================================
 
-XCL is built on Twine 2 (Harlowe 3.3.3)
+XCL is built on Twine 2 (Harlowe 3.3.3)  
+Story format: Harlowe with X-Lowe extensions  
+Primary development tool: Tweego compiler  
+Game is open-source under specific license  
+Modding is encouraged but respect original creators  
+Always backup your work and user saves  
+Test thoroughly before public release  
 
-Story format: Harlowe with X-Lowe extensions
+For the latest updates, always check the official repository, wiki, and Discord.  
 
-Primary development tool: Tweego compiler
+Official Discord: https://discord.gg/B2g2YYFn2N  
 
-Game is open-source under specific license
-
-Modding is encouraged but respect original creators
-
-Always backup your work and user saves
-
-Test thoroughly before public release
-
-For the latest updates, always check the official repository, wiki, and Discord.
-
-Official Discord: https://discord.gg/B2g2YYFn2N
-
-Happy modding!
+Happy modding!  
 
 END OF GUIDE
-
 ==============================================
-
