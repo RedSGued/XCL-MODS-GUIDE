@@ -1,9 +1,9 @@
-```markdown
+markdown
 ==============================================
 X-CHANGE LIFE (XCL) COMPLETE MODDING GUIDE
 ==============================================
 
-Last Updated: February 2024
+Last Updated: February 2025
 Game Version: X-Lowe
 Repository: https://gitgud.io/xchange-life/xcl-twee-xlowe
 Official Wiki: https://x-change.life/wiki/
@@ -21,90 +21,83 @@ TABLE OF CONTENTS
 6. Media & UI
 7. Data & Utilities
 8. Modding Tools
-9. References & Links
-10. Game Architecture & Structure
-11. Advanced Modding Systems
-12. Scripting & JavaScript Integration
-13. Testing & Debugging
-14. Community & Resources
-15. Complete Workflow Example
-16. Future-Proofing Your Mod
-Appendix: Quick Reference
+9. Stats & Checks
+10. Economy
+11. Mood & Status
+12. Wardrobe
+13. Audio
+14. Logic & Minigames
+15. References & Links
+16. Game Architecture & Structure
+17. Advanced Modding Systems
+18. Scripting & JavaScript Integration
+19. Testing & Debugging
+20. Community & Resources
+21. Complete Workflow Example
+22. Future-Proofing Your Mod
+23. Appendix: Quick Reference
+24. Final Notes
 
 ==============================================
 1. NAVIGATION MACROS
 ==============================================
 
-These macros control movement between passages and screen layouts.
+**(cs:)** - Change-screen navigation. Sets $next and replaces the center screen.
+**Signatures:** `(cs: target, modeOrStage?)`
+**Examples:** `(cs:"scene 04 page 2")`, `(cs:"Go to the bar","next")`
 
-- `(goto: "passage")` - Immediate navigation to another passage
-- `(screen: "right", "center")` - Three-panel layout with right sidebar
-- `(cs: target, mode)` - Change-screen navigation (supports "next", "goto", "nostop")
-- `(gt: "passage")` - XCL wrapper for goto with cleanup
-- `(display: "passage")` - Render another passage in-place
+**(gt:)** - XCL wrapper for (goto:). Performs transition cleanup.
+**Signatures:** `(gt: passage)`
+**Examples:** `(gt:"day")`
 
-Quick navigation wrappers:
+**(screen:)** - Builds XCL three-panel layout.
+**Signatures:** `(screen: right, center)`
+**Examples:** `(screen:"character status","day")`
 
-- `($cs: "passage")` - Convenience wrapper for `(cs:)`
-- `($nx: "passage")` - Fullscreen navigation wrapper
-- `($screen: "right", "center")` - Deprecated, use `(screen:)` directly
-- `($smart_screen: "sidebar", "media", "text", "options")` - Smart layout builder
+**($cs:)** - Convenience wrapper for (cs:).
+**($nx:)** - Fullscreen navigation wrapper.
+**($screen:)** - Deprecated, use (screen:) directly.
+**($smart_screen:)** - Smart layout builder.
 
 ==============================================
 2. CHOICE SYSTEMS
 ==============================================
 
-Create interactive choices for players.
+**(simple_option:)** - Creates choice links with flags.
+**Signatures:** `(simple_option: target, ...args)`
+**Examples:** `(simple_option:"buy flowers","display","Daisies","Roses","Lilies")`
 
-- `(simple_option: target, labels..., flags)` - Single option group with flags
-- `(multi_option: option_arrays...)` - Multiple option groups at once
-- `($simple_option: target, labels...)` - Alias of simple_option
-- `($multi_option: options...)` - Wrapper for multi_option
-- `($parse_option: target, labels...)` - Low-level option builder
+**(multi_option:)** - Renders multiple option groups.
+**Signatures:** `(multi_option: ...options)`
+**Examples:** `(multi_option:(a:"buy flowers","Daisies","Roses"), (a:"day","goto","Leave"))`
 
-Flags for options:
-- `"display"` - Show as display (no navigation)
-- `"goto"` - Full goto navigation
-- `"next"` - Next-screen flow
-- `"nostop"` - Refresh without stopping sounds
-- `false` - Hide the option block
+**($simple_option:)** - Alias of simple_option.
+**($multi_option:)** - Wrapper for multi_option.
+**($parse_option:)** - Low-level option builder.
 
-Example:
-
-```
-(simple_option: "buy flowers", "display", "Daisies", "Roses", "Lilies")
-(multi_option: (a:"buy flowers","Daisies","Roses"), (a:"day","goto","Leave"))
-```
+**Flags:** "display", "goto", "next", "nostop", false
 
 ==============================================
 3. CHARACTER & NPC SYSTEMS
 ==============================================
 
 **Character Status Macros:**
-
 - `(is_fem:)` - Returns true if female
 - `(is_male:)` - Returns true if male
 - `(is_preg:)` - Returns true if pregnant
-- `(knows_preg:)` - Returns true if pregnancy is known
-- `(is_bim:)` - Returns true if has "bimbo" effect
-- `(is_pp:)` - Returns true if has "people pleaser" effect
-- `(pill: "name")` - Checks if specific pill was taken
+- `(knows_preg:)` - Returns true if pregnancy known
+- `(is_bim:)` - Returns true if "bimbo" effect
+- `(is_pp:)` - Returns true if "people pleaser" effect
+- `(pill: "name")` - Checks specific pill
 
 **NPC Handling:**
+- `($show_base_npc: "npc_id")` - Load NPC into UI
+- `($char_passage:)` - Character-specific content
+- `($bargirl_passage:)` - NPC-specific content
+- `($passage_tags: "tag")` - Mod injection points
 
-- `($show_base_npc: "npc_id")` - Load base NPC into UI
-- `($char_passage: base, core, fallback)` - Character-specific content
-- `($bargirl_passage: base, core, fallback)` - NPC-specific content
-- `($passage_tags: "tag")` - Display all passages with tag (mod injection)
-
-**Modding Characters:**
-
-Create passages named `"base_passage character_id"` for character-specific content.
-Example: `"sex transactional kiss alexia"` for Alexia-specific content.
-
-**Wardrobe System:**
-
-- `(outfitdb: "character", outfit_ids)` - Get outfits for character
+**Wardrobe:**
+- `(outfitdb: "character", outfit_ids)` - Get outfits
 - `(getoutfit: "outfit_key")` - Get outfit details
 
 ==============================================
@@ -112,8 +105,7 @@ Example: `"sex transactional kiss alexia"` for Alexia-specific content.
 ==============================================
 
 **Memory Structure:**
-
-```
+```javascript
 {
   id: "unique_id",
   day: current_day,
@@ -124,259 +116,404 @@ Example: `"sex transactional kiss alexia"` for Alexia-specific content.
   tags: ["tag1", "tag2"],
   location: "activity_location"
 }
-```
+Core Memory Macros:
 
-**Core Memory Macros:**
+(remember: id, strength, npc, media, tags...) - Create memory
 
-- `(remember: id, strength, npc, media, tags...)` - Create memory
-- `(remember_update: operation, id, args...)` - Update memory
-- `(recall: id, tag_checks...)` - Recall memory by id
-- `(forget: id)` or `(forget:)` - Delete memory/prune expired
-- `(memory_time: memory)` - Natural language time phrase
-- `(days_since: "id")` - Days since memory was created
-- `(show_memory: memory, options)` - Render memory media
+(remember_update: operation, id, args...) - Update memory
+
+(recall: id, tag_checks...) - Recall memory
+
+(forget: id) or (forget:) - Delete/prune memories
+
+(memory_time: memory) - Natural language time
+
+(days_since: "id") - Days since creation
+
+(show_memory: memory, options) - Render memory
 
 Example:
 
-```
+text
 (remember: "stepsis shoplifting", 14, "stepsis", "none", "caught", "shoplifting")
 (recall: "stepsis shoplifting", "not contains", "forgotten")
-```
-
-Auto-added tags: `"aroused"`, `"drunk"` based on character state.
-Location set based on `$current_activity`.
-
 ==============================================
 5. ACTIVITIES & GAMEPLAY
 ==============================================
 
-**Activities System:**
-- Time-based progression
-- Location-specific (Mall, Gym, Bar, Home)
-- Stat modifications
-- Memory creation
+Gameplay Macros:
 
-**Gameplay Macros:**
+($set_mood: "mood", "reason") - Set character mood
 
-- `($set_mood: "mood", "reason")` - Set character mood
-- `($set_status: "status", "reason")` - Add status effect
-- `($register_orgasm:)` - Log orgasm event
-- `($gain_money: amount)` - Add money with UI updates
-- `($pay_money: amount)` - Subtract money
-- `($gain_arousal: amount)` - Gain arousal with styling
-- `($core_female_status:)` - Returns "bimbo" or "female"
+($set_status: "status", "reason") - Add status effect
 
-**Stat Checks:**
+($register_orgasm:) - Log orgasm event
 
-- `($willpower_check: "passage", difficulty)`
-- `($charm_check: "passage", difficulty)`
-- `($intellect_check: "passage", difficulty)`
-- `($fitness_check: "passage", difficulty)`
+($gain_arousal: amount) - Gain arousal with styling
 
-**Compulsions System:**
-- Automatic behavior triggers
-- Tied to side effects (Bimbo, People Pleaser)
-- Can override player choices
+($core_female_status:) - Returns "bimbo" or "female"
 
-**Dreams System:**
-- Add `[dream]` tag to passages
-- Add to `$overnight_messages` array
-- Use memory system for persistence
+Activities System:
 
-Example:
+Time-based progression
 
-```
-:: Dream Passage [dream]
-(remember: "dream_id", 7, "none", "none", "dream", content)
-```
+Location-specific (Mall, Gym, Bar, Home)
+
+Stat modifications
+
+Memory creation
+
+Compulsions System:
+
+Automatic behavior triggers
+
+Tied to side effects (Bimbo, People Pleaser)
+
+Can override player choices
+
+Dreams System:
+
+Add [dream] tag to passages
+
+Add to $overnight_messages array
+
+Use memory system for persistence
 
 ==============================================
-6. MEDIA & UI MACROS
+6. MEDIA & UI
 ==============================================
 
-**Media Display:**
+Media Display:
 
-- `(pic: image, format, class, options)` - Display image
-- `(vid: video, format, class, options)` - Display video
-- `(media: path_or_html, options)` - Smart media (auto-detect type)
-- `($pic: image, format, class)` - Legacy image wrapper
-- `($vid: video, format, class)` - Legacy video wrapper
+(pic: image, format, class, options) - Display image
 
-Format options: `"left"`, `"right"`, `"center"`, `"left squared"`, etc.
-Options datamap: `(dm: "width", "75%", "aspect-ratio", "16/9", "filter", "sepia(30%)")`
+(vid: video, format, class, options) - Display video
 
-**UI Components:**
+(media: path_or_html, options) - Smart media (auto-detect)
 
-- `(svg-button: icon, size, state, colors, class)` - Stylized SVG buttons
-- `(floatnote: emoji, title, message, audio)` - Floating notifications
-- `(updateprogress: threshold, points, danger)` - Progress bar
-- `(updatemiddlebar: threshold, points, options)` - Middle bar UI
-- `(icon: "name", class, repeat)` - Stat icons
-- `(picker: "$var", options...)` - Image picker
+($pic:), ($vid:) - Legacy wrappers
 
-**Tooltips:**
+UI Components:
 
-- `(show_tooltip: content, tooltip)` - Basic tooltip
-- `(show_tooltip_wide: content, tooltip)` - Wide layout
-- `(show_tooltip_text: text, tip)` - Text-only version
-- `(cleartooltips:)` - Clear all tooltips
-- `(tooltipgc:)` - Garbage collect tooltips
-- `(refreshtooltips:)` - Reposition tooltips
+(svg-button: icon, size, state, colors, class) - Stylized SVG buttons
 
-**Text Styling:**
+(floatnote: emoji, title, message, audio) - Floating notifications
 
-- `($centered: [content])` - Centered options block
-- `($highlight: [content])` - Highlight span
-- `($shadow: [content])` - Shadow text
-- `($bimbo: [content])` - Bimbo-styled narration
-- `($bimbo_dialogue: [content])` - Bimbo dialogue with quotes
-- `($heading: "text")` - Large heading
-- `($caps: "text")` - Capitalize each word
+(updateprogress: threshold, points, danger) - Progress bar
 
-**Notifications:**
+(updatemiddlebar: threshold, points, options) - Middle bar UI
 
-- `($notification: "message")` - Temporary animated
-- `($notification_still: "message")` - Persistent
+(icon: "name", class, repeat) - Stat icons
+
+(picker: "$var", options...) - Image picker
+
+Tooltips:
+
+(show_tooltip: content, tooltip) - Basic tooltip
+
+(show_tooltip_wide: content, tooltip) - Wide layout
+
+(show_tooltip_text: text, tip) - Text-only
+
+(cleartooltips:), (tooltipgc:), (refreshtooltips:)
+
+Text Styling:
+
+($centered: [content]) - Centered block
+
+($highlight: [content]) - Highlight span
+
+($shadow: [content]) - Shadow text
+
+($bimbo: [content]) - Bimbo-styled narration
+
+($bimbo_dialogue: [content]) - Bimbo dialogue
+
+($heading: "text") - Large heading
+
+($caps: "text") - Capitalize words
 
 ==============================================
 7. DATA & UTILITIES
 ==============================================
 
-**Randomness:**
+Randomness:
 
-- `(newseed:)` - Generate fresh random seed
-- `(twist: min, max)` - Random integer
-- `(twirl: values...)` - Random value from arguments
-- `(twerk: hooks...)` - Random code hook execution
-- `(twisted: values...)` - Shuffle array/values
-- `(either: values...)` - Harlowe random choice
-- `(shuffled: values...)` - Harlowe shuffle
+(newseed:) - Generate random seed
 
-**Math:**
+(twist: min, max) - Random integer
 
-- `(average: values...)` - Arithmetic mean
-- `(rnd: number, precision)` - Rounding
-- `(clamp: value, min, max)` - Clamp value
-- `(sum: values...)` - Sum numbers
-- `(convert: value, from, to)` - Unit conversion
+(twirl: values...) - Random value
 
-**Data Manipulation:**
+(twerk: hooks...) - Random code execution
 
-- `(dm: key1, value1, key2, value2...)` - Create datamap
-- `(check_dm: dm, key, operation, value)` - Check datamap
-- `(dmround: datamap, precision)` - Round numeric values
-- `(hash: value)` - Generate deterministic hash
-- `(indexof: array, item)` - Find item index
-- `(intersection: a, b)` - Array intersection
-- `(remove: array, item, count)` - Remove from array
+(twisted: values...) - Shuffle array
 
-**Storage:**
+(either: values...) - Harlowe random choice
 
-- `($get_session_storage: key, default)` - Read sessionStorage
-- `($get_local_storage: key, default)` - Read localStorage
-- `($set_session_storage: key, value)` - Write sessionStorage
-- `($set_local_storage: key, value)` - Write localStorage
-- `(savegameto: "slot")` - Save game state
-- `(get_storage: "type", key, default)` - Generic storage
-- `(set_storage: "type", key, value)` - Generic storage write
+(shuffled: values...) - Harlowe shuffle
 
-**Audio:**
+Math:
 
-- `($play: type, track, delay)` - Play audio tracks
-  Types: `"sound"`, `"ambience"`, `"sex loop"`, `"song"`, `"scene"`, `"story"`
+(average: values...) - Arithmetic mean
 
-**Debug:**
+(rnd: number, precision) - Rounding
 
-- `(clearstandardvars:)` - Reset engine variables
-- `(del: "$var1", "$var2")` - Delete variables
-- `($delete_global_variable: "$var")` - Reset global variable
-- `($get_global: "$var", "js_expr")` - Copy JS to Twine variable
-- `($use_global: "$var", "js_expr", hook)` - Temporary JS value
-- `($record_timing: "point")` - Performance profiling
-- `(win:)` - Check if `$result` is `"pass"`
+(clamp: value, min, max) - Clamp value
+
+(sum: values...) - Sum numbers
+
+(convert: value, from, to) - Unit conversion
+
+Data Manipulation:
+
+(dm: key1, value1, key2, value2...) - Create datamap
+
+(check_dm: dm, key, operation, value) - Check datamap
+
+(dmround: datamap, precision) - Round numeric values
+
+(hash: value) - Generate hash
+
+(indexof: array, item) - Find index
+
+(intersection: a, b) - Array intersection
+
+(remove: array, item, count) - Remove from array
+
+Storage:
+
+($get_session_storage: key, default) - Read sessionStorage
+
+($get_local_storage: key, default) - Read localStorage
+
+($set_session_storage: key, value) - Write sessionStorage
+
+($set_local_storage: key, value) - Write localStorage
+
+(savegameto: "slot") - Save game
+
+(get_storage: "type", key, default) - Generic read
+
+(set_storage: "type", key, value) - Generic write
+
+Audio:
+
+($play: type, track, delay) - Play audio tracks
+
+Types: "sound", "ambience", "sex loop", "song", "scene", "story"
+
+Debug:
+
+(clearstandardvars:) - Reset engine variables
+
+(del: "$var1", "$var2") - Delete variables
+
+($delete_global_variable: "$var") - Reset global
+
+($get_global: "$var", "js_expr") - Copy JS to Twine
+
+($use_global: "$var", "js_expr", hook) - Temporary JS
+
+($record_timing: "point") - Performance profiling
+
+(win:) - Check if $result is "pass"
 
 ==============================================
 8. MODDING TOOLS
 ==============================================
 
-**Essential Modding Macros:**
+Essential Modding Macros:
 
-- `($char_passage: base, core, fallback)` - Character-specific content handler
-- `($bargirl_passage: base, core, fallback)` - NPC-specific content handler
-- `($passage_tags: "tag")` - Mod injection points
-- `($show_base_npc: "npc_id")` - Load NPC for mods/debug
+($char_passage: base, core, fallback) - Character content
 
-**Best Practices:**
+($bargirl_passage: base, core, fallback) - NPC content
 
-1. Use official macros for compatibility
-2. Prefix custom variables: `$_modname_variable`
-3. Test with base game updates
-4. Use `(display:)` for UI refreshes
-5. Clean up unused variables
-6. Document mod requirements
+($passage_tags: "tag") - Mod injection points
 
-**Creating Activities:**
+($show_base_npc: "npc_id") - Load NPC for mods/debug
 
-1. Define in location system
-2. Create passage sequence
-3. Add stat changes
-4. Optionally create memories
-5. Integrate with navigation
+Best Practices:
 
-**Adding NPCs:**
+Use official macros for compatibility
 
-1. Add NPC data to game databases
-2. Create character-specific passages
-3. Use char_passage/bargirl_passage macros
-4. Add portraits to `img/npc/` folder
+Prefix custom variables: $_modname_variable
 
-**Adding Dreams:**
+Test with base game updates
 
-1. Create passage with `[dream]` tag
-2. Add to `$overnight_messages`
-3. Use memory system for persistence
-4. Consider dream-specific visuals
+Use (display:) for UI refreshes
+
+Clean up unused variables
+
+Document mod requirements
 
 ==============================================
-9. REFERENCES & LINKS
+9. STATS & CHECKS
 ==============================================
 
-**Official Documentation:**
+Stat Checks:
 
-- Bar Girl System: https://x-change.life/wiki/docs/bar-girl/
-- Playable Character: https://x-change.life/wiki/docs/playable-character/
-- Activities System: https://x-change.life/wiki/docs/quick-guide-to-the-activities-system/
-- Custom Macros: https://x-change.life/wiki/docs/custom-x-change-life-macros-you-can-use-in-mods/
-- Creating Mods: https://x-change.life/wiki/docs/creating-mods/
-- Compulsions: https://x-change.life/wiki/docs/compulsions/
-- Memory System: https://x-change.life/wiki/docs/xcl-memory-system/
-- Adding Dreams: https://x-change.life/wiki/docs/adding-a-dream/
+($willpower_check: "passage", difficulty) - Fixed chance (101-difficulty)
 
-**Code Repository:**
+($charm_check: "passage", difficulty) - Charm-based chance
 
-- https://gitgud.io/xchange-life/xcl-twee-xlowe
+($intellect_check: "passage", difficulty) - Intellect-based chance
 
-**Harlowe Macros (Standard):**
+($fitness_check: "passage", difficulty) - Fitness-based chance
 
-- Variables: `(set:)`, `(put:)`, `(move:)`
-- Control Flow: `(if:)`, `(unless:)`, `(else:)`, `(for:)`, `(loop:)`
-- Data Structures: `(a:)`, `(dm:)`, `(ds:)`, `(range:)`, `(find:)`
-- Strings: `(str:)`, `(substring:)`, `(uppercase:)`, `(lowercase:)`
-- Math: `(abs:)`, `(min:)`, `(max:)`, `(pow:)`, `(sqrt:)`
+Usage:
 
-**TGP Macros (Also Available):**
-
-- `(indexofpage:)`, `(indexofstatchange:)`, `(and:)`, `(not:)`
-- `(choice:)`, `(resettopage:)`, `(change_stat:)`, `(read_stat:)`
-- `(notification:)`, `(audiotoggle:)`, `(playwhenread:)`, `(map:)`
-
+text
+($charm_check: "flirt_success", 60)  # 60% success chance
+($willpower_check: "resist", 40)     # 61% chance (101-40)
 ==============================================
-10. GAME ARCHITECTURE & STRUCTURE
+10. ECONOMY
 ==============================================
 
-**Game Folder Structure:**
+Money Macros:
 
-```
+($gain_money: amount) - Add money with UI updates
+
+($pay_money: amount) - Subtract money
+
+(currency: amount) - Format as currency (USD)
+
+Examples:
+
+text
+($gain_money: 50)
+($pay_money: 25)
+(print: (currency: 65))  # "$65"
+==============================================
+11. MOOD & STATUS
+==============================================
+
+Mood & Status Macros:
+
+($set_mood: "mood", "reason") - Set mood (icon + buffs)
+
+($set_status: "status", "reason") - Add status effect
+
+Requirements:
+
+Mood/status must exist in game tables
+
+Automatically updates UI
+
+Examples:
+
+text
+($set_mood: "humiliated", "because she rejected you")
+($set_status: "cum breath", "Alexia came in your mouth")
+==============================================
+12. WARDROBE
+==============================================
+
+Wardrobe System:
+
+(outfitdb: "character", outfit_ids) - Get outfits
+
+(getoutfit: "outfit_key") - Get outfit details
+
+Usage:
+
+text
+(set: $outfits to (outfitdb: "alexia"))
+(set: $outfit to (getoutfit: "alexia casual sundress"))
+==============================================
+13. AUDIO
+==============================================
+
+Audio Playback:
+
+($play: type, track, delay) - Play audio tracks
+
+Audio Types:
+
+"sound" - UI sound effects
+
+"ambience" - Background sounds
+
+"sex loop" - Loop music for scenes
+
+"song" - Music tracks
+
+"scene" - Scene-specific (folder shortcuts)
+
+"story" - Storytelling audio
+
+Examples:
+
+text
+($play: "sound", "ui good")
+($play: "ambience", "indoors afternoon")
+($play: "scene", "thwack", "2s")
+==============================================
+14. LOGIC & MINIGAMES
+==============================================
+
+Logic Macros:
+
+(win:) - Returns true if $result is "pass"
+
+($word_game_setup: dirty_talk_pairs) - Setup word minigame
+
+Usage:
+
+text
+(set: $result to "pass")
+(if: (win:))[You win!]
+
+($word_game_setup: (a: "Line 1", "Sentence 1", "Line 2", "Sentence 2"))
+==============================================
+15. REFERENCES & LINKS
+==============================================
+
+Official Documentation:
+
+Bar Girl System: https://x-change.life/wiki/docs/bar-girl/
+
+Playable Character: https://x-change.life/wiki/docs/playable-character/
+
+Activities System: https://x-change.life/wiki/docs/quick-guide-to-the-activities-system/
+
+Custom Macros: https://x-change.life/wiki/docs/custom-x-change-life-macros-you-can-use-in-mods/
+
+Creating Mods: https://x-change.life/wiki/docs/creating-mods/
+
+Compulsions: https://x-change.life/wiki/docs/compulsions/
+
+Memory System: https://x-change.life/wiki/docs/xcl-memory-system/
+
+Adding Dreams: https://x-change.life/wiki/docs/adding-a-dream/
+
+Code Repository:
+
+https://gitgud.io/xchange-life/xcl-twee-xlowe
+
+Harlowe Macros (Standard):
+
+Variables: (set:), (put:), (move:)
+
+Control Flow: (if:), (unless:), (else:), (for:), (loop:)
+
+Data Structures: (a:), (dm:), (ds:), (range:), (find:)
+
+TGP Macros (Also Available):
+
+(indexofpage:), (indexofstatchange:), (and:), (not:)
+
+(choice:), (resettopage:), (change_stat:), (read_stat:)
+
+(notification:), (audiotoggle:), (playwhenread:), (map:)
+
+==============================================
+16. GAME ARCHITECTURE & STRUCTURE
+==============================================
+
+Game Folder Structure:
+
+text
 xcl-twee-xlowe/
 ├── img/                    # All media assets
 │   ├── ui/                # Interface elements
@@ -390,315 +527,329 @@ xcl-twee-xlowe/
 ├── macros/              # Macro definitions
 ├── scripts/             # JavaScript files
 └── styles/              # CSS stylesheets
-```
+Game State Variables:
 
-**Game State Variables:**
+$day / $time - Current day and time
 
-- `$day` / `$time` - Current day and time
-- `$money` - Player's money
-- `$charm` / `$intellect` / `$fitness` - Core stats
-- `$arousal` - Arousal level
-- `$identity` / `$femininity` / `$masculinity` - Gender stats
-- `$current_activity` - Current location/activity
-- `$next` - Next passage to navigate to
-- `$choice` - Last choice made
-- `$stage` - Scene stage/progress
-- `$pill_taken` - Last pill taken
-- `$npc` / `$npc_select` - Current NPC data
-- `$memories` - Memory database array
-- `$pages` - Game progress tracking
-- `$result` - Minigame result ("pass"/"fail")
-- `$sound` - Audio toggle state
+$money - Player's money
 
-**Passage Tags System:**
+$charm / $intellect / $fitness - Core stats
 
-- `[fullscreen]` - Passage uses fullscreen mode (cs: behaves like "next")
-- `[goto]` - Passage uses immediate goto (cs: behaves like `(goto:)`)
-- `[dream]` - Dream passage (added to `$overnight_messages`)
-- `[storylet]` - Harlowe storylet system (if used)
-- `[exclusivity:X]` - Storylet exclusivity
-- `[urgency:X]` - Storylet urgency
+$arousal - Arousal level
 
-**Time System:**
+$identity / $femininity / $masculinity - Gender stats
 
-- Day counter increments after sleep
-- Time divided into segments: Morning, Afternoon, Evening, Night
-- Activities consume time segments
-- Automatic time progression in certain scenes
+$current_activity - Current location/activity
 
-**Economy System:**
+$next - Next passage
 
-- Money earned through activities/jobs
-- Expenses for items, outfits, services
-- Dynamic pricing based on locations
-- `(currency: amount)` macro for formatting
+$choice - Last choice made
+
+$stage - Scene stage/progress
+
+$pill_taken - Last pill taken
+
+$npc / $npc_select - Current NPC data
+
+$memories - Memory database
+
+$pages - Progress tracking
+
+$result - Minigame result
+
+$sound - Audio toggle
 
 ==============================================
-11. ADVANCED MODDING SYSTEMS
+17. ADVANCED MODDING SYSTEMS
 ==============================================
 
-**Dynamic Content Injection:**
+Dynamic Content Injection:
 
-- Use `($passage_tags: "tag")` for mod injection points
-- Add passages with specific tags to inject content
-- Example: Add passage tagged `"bar_options"` to inject new bar options
+Use ($passage_tags: "tag") for mod injection
 
-**Mod Configuration:**
+Add passages with specific tags to inject content
 
-- Store mod settings in localStorage: `($set_local_storage: "modname_setting", value)`
-- Use namespaced variables: `$_my_mod_variable`
-- Provide configuration passages if needed
+Mod Configuration:
 
-**Cross-Mod Compatibility:**
+Store settings in localStorage
 
-1. Check for existing mods before overwriting content
-2. Use unique passage names: `"mymod_feature"` not `"feature"`
-3. Document dependencies and conflicts
-4. Use version checking in mod initialization
+Use namespaced variables: $_my_mod_variable
 
-**Save Game Integration:**
+Provide configuration passages
 
-- Mod data should be included in save games
-- Use standard variables or custom storage with save/load hooks
-- Consider migration paths for mod updates
+Cross-Mod Compatibility:
 
-**Performance Considerations:**
+Check for existing mods before overwriting
 
-- Optimize image sizes (recommend 1280x720 max for scenes)
-- Use WebP format for better compression
-- Limit concurrent audio tracks
-- Use `(display:)` for partial updates instead of full navigation
-- Clean up temporary variables
+Use unique passage names
 
-==============================================
-12. SCRIPTING & JAVASCRIPT INTEGRATION
-==============================================
+Document dependencies
 
-**JavaScript Global Objects:**
+Use version checking
 
-- `window.GE` - Game engine object (if available)
-- `window.GE.updateStats()` - Update UI stats
-- `window.GE.scene_select` - Scene selection data
+Performance Considerations:
 
-**JavaScript Integration Macros:**
+Optimize image sizes (1280x720 max)
 
-- `($get_global: "$var", "window.GE.property")`
-- `($use_global: "$var", "jsExpression", [hook])`
-- `(script: "javascript code")` - Inject JavaScript directly
+Use WebP format
 
-**Custom JavaScript Functions:**
+Limit concurrent audio
 
-Add to Story JavaScript or use `(script:)` macro for:
-- Complex calculations
-- External API calls (if allowed)
-- Advanced UI manipulations
-- Integration with browser APIs
+Use (display:) for partial updates
 
-Example: Custom Achievement System
-
-```
-(script: "window.myModAchievements = window.myModAchievements || {};")
-(if: (check_dm: window.myModAchievements, "achievement1", "is", true))[...]
-```
+Clean up temporary variables
 
 ==============================================
-13. TESTING & DEBUGGING
+18. SCRIPTING & JAVASCRIPT INTEGRATION
 ==============================================
 
-**Debug Macros:**
+JavaScript Global Objects:
 
-- `(debug:)` - Open debug panel
-- `(assert: condition)` - Assertion checking
-- `(assert-exists: target)` - Check hook/passage exists
-- `(mock-turns: n)` - Mock turn count (debug mode)
-- `(mock-visits: passages...)` - Mock passage visits
+window.GE - Game engine
 
-**Testing Tools:**
+window.GE.updateStats() - Update UI stats
 
-1. Use browser Developer Tools (F12)
-2. Console logging: `(script: "console.log('test', $variable);")`
-3. Variable inspection in debug panel
-4. Passage history: `(history:)`, `(visited: "passage")`
-5. Save/load testing
+window.GE.scene_select - Scene selection
 
-**Common Issues & Solutions:**
+JavaScript Macros:
 
-1. Macros not working: Check spelling and parameter count
-2. Images not showing: Verify path and file extension
-3. Variables not persisting: Ensure using `$` not `_` prefix for story variables
-4. Navigation loops: Check passage tags and cs: modes
-5. Performance issues: Optimize media, reduce passage complexity
+($get_global: "$var", "window.GE.property")
 
-==============================================
-14. COMMUNITY & RESOURCES
-==============================================
+($use_global: "$var", "jsExpression", [hook])
 
-**Official Channels:**
+(script: "javascript code") - Direct injection
 
-- Discord: [XCL Discord Server] (search community)
-- GitHub/GitLab: https://gitgud.io/xchange-life
-- Wiki: https://x-change.life/wiki/
+Custom JavaScript:
 
-**Learning Resources:**
+Complex calculations
 
-- Twine Cookbook: https://twinery.org/cookbook/
-- Harlowe Manual: https://twine2.neocities.org/
-- Twee Documentation: https://github.com/iftechfoundation/twee-spec
+External API calls
 
-**Tools for Modders:**
+Advanced UI manipulations
 
-- Tweego: Twee compiler (https://github.com/tmedwards/tweego)
-- Twine 2: Visual editor (https://twinery.org/)
-- Image editors: GIMP, Krita, Photoshop
-- Audio editors: Audacity, Ocenaudio
-- JSON validators for data files
-
-**Sample Mod Structure:**
-
-```
-my-awesome-mod/
-├── README.md
-├── manifest.json          # Mod metadata
-├── passages/              # Additional passages
-├── img/                   # Custom images
-│   └── mymod/
-├── scripts/              # JavaScript additions
-└── styles/               # CSS overrides
-```
-
-**Mod Manifest Example:**
-
-```json
-{
-  "name": "My Awesome Mod",
-  "version": "1.0.0",
-  "author": "Your Name",
-  "description": "Adds new features to XCL",
-  "requires": "XCL v2.0+",
-  "conflicts": ["other-mod"],
-  "files": ["passages/mymod.twee", "img/mymod/"]
-}
-```
+Browser API integration
 
 ==============================================
-15. COMPLETE WORKFLOW EXAMPLE
+19. TESTING & DEBUGGING
 ==============================================
 
-**Step 1: Planning**
-- Define mod scope: New NPC, activity, or system
-- Sketch passage flow
-- List required media assets
+Debug Macros:
 
-**Step 2: Setup**
-- Clone XCL repository or extract game files
-- Create mod folder structure
-- Set up development environment
+(debug:) - Open debug panel
 
-**Step 3: Implementation**
-1. Create NPC data structure (if adding NPC)
-2. Write passage content with appropriate tags
-3. Add media files to correct folders
-4. Implement custom logic using XCL macros
-5. Create integration points with base game
+(assert: condition) - Assertion checking
 
-**Step 4: Testing**
-1. Test individual passages
-2. Test integration with base systems
-3. Test save/load functionality
-4. Test with different character states
-5. Performance testing
+(assert-exists: target) - Check hook/passage
 
-**Step 5: Documentation**
-- Write README with installation instructions
-- Document new features
-- List known issues or limitations
-- Provide contact information
+(mock-turns: n) - Mock turn count
 
-**Step 6: Distribution**
-- Package mod files
-- Create installation instructions
-- Share with community
-- Gather feedback and iterate
+(mock-visits: passages...) - Mock visits
+
+Testing Tools:
+
+Browser Developer Tools (F12)
+
+Console logging
+
+Variable inspection
+
+Passage history
+
+Save/load testing
 
 ==============================================
-16. FUTURE-PROOFING YOUR MOD
+20. COMMUNITY & RESOURCES
 ==============================================
 
-**Version Compatibility:**
-- Check XCL version before loading mod
-- Use feature detection instead of version checking
-- Graceful degradation for missing features
+Official Channels:
 
-**Update Strategy:**
-- Follow XCL update announcements
-- Test mod with new versions promptly
-- Maintain changelog for your mod
-- Provide migration paths for users
+Discord: https://discord.gg/B2g2YYFn2N
 
-**Community Standards:**
-- Follow established naming conventions
-- Document your code
-- Provide examples of usage
-- Be responsive to bug reports
-- Credit resources and inspiration
+GitHub/GitLab: https://gitgud.io/xchange-life
 
-==============================================
-APPENDIX: QUICK REFERENCE
-==============================================
+Wiki: https://x-change.life/wiki/
 
-**Essential Macros Quick Reference:**
+Learning Resources:
 
-- Navigation: `(goto:)`, `(cs:)`, `(screen:)`, `(display:)`
-- Choices: `(simple_option:)`, `(multi_option:)`
-- Character: `(is_fem:)`, `(is_preg:)`, `(pill:)`
-- Memory: `(remember:)`, `(recall:)`, `(forget:)`
-- Media: `(pic:)`, `(vid:)`, `(media:)`
-- UI: `(floatnote:)`, `(updateprogress:)`, `(icon:)`
-- Data: `(dm:)`, `(check_dm:)`, `(hash:)`
-- Storage: `($get_local_storage:)`, `($set_local_storage:)`
+Twine Cookbook: https://twinery.org/cookbook/
 
-**Common Variable Patterns:**
+Harlowe Manual: https://twine2.neocities.org/
 
-- `$modname_feature = true/false` - Mod feature toggles
-- `$_temp_variable` - Temporary calculations
-- `$global_mod_data = (dm: ...)` - Mod data storage
-- `$npc_modname_stats = (a: ...)` - NPC extension data
+Twee Documentation: https://github.com/iftechfoundation/twee-spec
 
-**File Naming Conventions:**
+Tools for Modders:
 
-- `passages/modname_feature.twee` - Mod passages
-- `img/mods/modname/asset.png` - Mod images
-- `scripts/modname.js` - Mod JavaScript
-- `styles/modname.css` - Mod styles
+Tweego: https://github.com/tmedwards/tweego
+
+Twine 2: https://twinery.org/
+
+Image editors: GIMP, Krita, Photoshop
+
+Audio editors: Audacity, Ocenaudio
 
 ==============================================
-FINAL NOTES
+21. COMPLETE WORKFLOW EXAMPLE
 ==============================================
 
-- XCL is built on Twine 2 (Harlowe 3.3.3)
-- Story format: Harlowe with X-Lowe extensions
-- Primary development tool: Tweego compiler
-- Game is open-source under specific license
-- Modding is encouraged but respect original creators
-- Always backup your work and user saves
-- Test thoroughly before public release
+Step 1: Planning
 
-For the latest updates, always check the official repository and wiki.
+Define mod scope
+
+Sketch passage flow
+
+List required media
+
+Step 2: Setup
+
+Clone XCL repository
+
+Create mod folder structure
+
+Set up development environment
+
+Step 3: Implementation
+
+Create NPC data (if adding NPC)
+
+Write passage content with tags
+
+Add media files
+
+Implement logic using XCL macros
+
+Create integration points
+
+Step 4: Testing
+
+Test individual passages
+
+Test integration
+
+Test save/load
+
+Test with different states
+
+Performance testing
+
+Step 5: Documentation
+
+Write README
+
+Document features
+
+List known issues
+
+Provide contact info
+
+Step 6: Distribution
+
+Package mod files
+
+Create instructions
+
+Share with community
+
+Gather feedback
+
+==============================================
+22. FUTURE-PROOFING YOUR MOD
+==============================================
+
+Version Compatibility:
+
+Check XCL version before loading
+
+Use feature detection
+
+Graceful degradation
+
+Update Strategy:
+
+Follow XCL updates
+
+Test with new versions
+
+Maintain changelog
+
+Provide migration paths
+
+Community Standards:
+
+Follow naming conventions
+
+Document code
+
+Provide examples
+
+Be responsive to bugs
+
+Credit resources
+
+==============================================
+23. APPENDIX: QUICK REFERENCE
+==============================================
+
+Essential Macros:
+
+Navigation: (goto:), (cs:), (screen:), (display:)
+
+Choices: (simple_option:), (multi_option:)
+
+Character: (is_fem:), (is_preg:), (pill:)
+
+Memory: (remember:), (recall:), (forget:)
+
+Media: (pic:), (vid:), (media:)
+
+UI: (floatnote:), (updateprogress:), (icon:)
+
+Data: (dm:), (check_dm:), (hash:)
+
+Storage: ($get_local_storage:), ($set_local_storage:)
+
+Common Variable Patterns:
+
+$modname_feature = true/false - Mod toggles
+
+$_temp_variable - Temporary calculations
+
+$global_mod_data = (dm: ...) - Mod data storage
+
+$npc_modname_stats = (a: ...) - NPC extension
+
+File Naming:
+
+passages/modname_feature.twee - Mod passages
+
+img/mods/modname/asset.png - Mod images
+
+scripts/modname.js - Mod JavaScript
+
+styles/modname.css - Mod styles
+
+==============================================
+24. FINAL NOTES
+==============================================
+
+XCL is built on Twine 2 (Harlowe 3.3.3)
+
+Story format: Harlowe with X-Lowe extensions
+
+Primary development tool: Tweego compiler
+
+Game is open-source under specific license
+
+Modding is encouraged but respect original creators
+
+Always backup your work and user saves
+
+Test thoroughly before public release
+
+For the latest updates, always check the official repository, wiki, and Discord.
+
+Official Discord: https://discord.gg/B2g2YYFn2N
 
 Happy modding!
 
-==============================================
-ADDITIONAL NOTES
-==============================================
-
-- XCL uses Twine with Harlowe story format
-- Custom macros extend functionality
-- Mods should be compatible with base game updates
-- Community resources available on Discord/forums
-- Always backup before modifying game files
-
-For questions: Check Discord community or official forums.
-
 END OF GUIDE
 ==============================================
-```
